@@ -11,8 +11,43 @@ class Player {
 		this.retryCount = 0;
 		this.maxRetries = 1; // 自动重连最大次数
 		this.retryTimer = null;
+		this.proxyUrl = null; // Worker URL，将在初始化时设置
+		this.proxyEnabled = true; // 代理开关状态
 		this.initTheme();
 		this.initEventListeners();
+	}
+
+	/**
+	 * 设置代理URL
+	 * @param {string} url - Worker URL
+	 */
+	setProxyUrl(url) {
+		this.proxyUrl = url;
+	}
+
+	/**
+	 * 获取代理后的URL
+	 * @param {string} url - 原始URL
+	 * @returns {string} 代理后的URL
+	 */
+	getProxiedUrl(url) {
+		if (!this.proxyUrl || !this.proxyEnabled) {
+			return url; // 如果没有设置代理或代理被禁用，直接返回原始URL
+		}
+		return `${this.proxyUrl}?url=${encodeURIComponent(url)}`;
+	}
+
+	/**
+	 * 设置代理状态
+	 * @param {boolean} enabled - 是否启用代理
+	 */
+	setProxyEnabled(enabled) {
+		this.proxyEnabled = enabled;
+		// 如果当前正在播放，则重新加载使用新的代理设置
+		if (this.currentUrl) {
+			this.play(this.currentUrl);
+		}
+		notification.info(enabled ? "已启用代理" : "已禁用代理");
 	}
 
 	/**
@@ -38,6 +73,20 @@ class Player {
 				this.player.resize();
 			}
 		});
+
+		// 监听代理开关
+		const proxyToggle = document.getElementById("proxyToggle");
+		if (proxyToggle) {
+			// 从本地存储加载代理状态
+			this.proxyEnabled = Utils.storage.get("proxyEnabled", true);
+			proxyToggle.checked = this.proxyEnabled;
+
+			proxyToggle.addEventListener("change", (e) => {
+				this.setProxyEnabled(e.target.checked);
+				// 保存代理状态到本地存储
+				Utils.storage.save("proxyEnabled", e.target.checked);
+			});
+		}
 	}
 
 	/**
@@ -68,6 +117,9 @@ class Player {
 		// 确保容器是空的
 		container.innerHTML = "";
 
+		// 获取代理后的URL
+		const proxiedUrl = this.getProxiedUrl(url);
+
 		// 创建新的播放器实例
 		this.player = new DPlayer({
 			container: container,
@@ -75,7 +127,7 @@ class Player {
 			autoplay: true,
 			theme: "#f27441",
 			video: {
-				url: url,
+				url: proxiedUrl,
 				type: "hls",
 			},
 			pluginOptions: {
@@ -187,5 +239,8 @@ class Player {
 	}
 }
 
-// 创建并导出播放器实例
-export const player = new Player();
+// 创建播放器实例
+const player = new Player();
+
+// 导出播放器实例
+export { player };

@@ -54,6 +54,13 @@
             <div class="player-header">
                 <input type="text" id="streamUrl" class="url-input" placeholder="输入直播流地址 (m3u8)">
                 <button id="playStream" class="play-btn">播放</button>
+                <div class="proxy-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="proxyToggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="proxy-label">启用代理</span>
+                </div>
             </div>
             <div id="notification" class="notification hidden">
                 <!-- 通知内容将通过JavaScript动态更新 -->
@@ -66,6 +73,10 @@
         import { channelChecker } from './channelChecker.js';
         import Utils from './utils.js';
         import { notification } from './notification.js';
+
+        // 设置 Worker URL（部署后需要更新为实际的 Worker URL）
+        const WORKER_URL = 'https://m3u8-proxy.1942499981.workers.dev';
+        player.setProxyUrl(WORKER_URL);
 
         let currentChannels = [];
         let isChecking = false;

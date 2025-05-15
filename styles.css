@@ -306,6 +306,83 @@ body {
 	color: #dc3545;
 }
 
+/* 代理开关样式 */
+.proxy-toggle {
+	display: flex;
+	align-items: center;
+	margin-left: 10px;
+}
+
+.proxy-label {
+	margin-left: 8px;
+	color: var(--text-color);
+}
+
+/* 开关按钮样式 */
+.switch {
+	position: relative;
+	display: inline-block;
+	width: 40px;
+	height: 20px;
+}
+
+.switch input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.slider {
+	position: absolute;
+	cursor: pointer;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #ccc;
+	transition: 0.4s;
+}
+
+.slider:before {
+	position: absolute;
+	content: "";
+	height: 16px;
+	width: 16px;
+	left: 2px;
+	bottom: 2px;
+	background-color: white;
+	transition: 0.4s;
+}
+
+input:checked + .slider {
+	background-color: #28a745;
+}
+
+input:focus + .slider {
+	box-shadow: 0 0 1px #28a745;
+}
+
+input:checked + .slider:before {
+	transform: translateX(20px);
+}
+
+.slider.round {
+	border-radius: 20px;
+}
+
+.slider.round:before {
+	border-radius: 50%;
+}
+
+/* 适配暗色主题 */
+.dark-mode .slider {
+	background-color: #555;
+}
+
+.dark-mode input:checked + .slider {
+	background-color: var(--primary-color);
+}
+
 /* 响应式布局 */
 @media (max-width: 768px) {
 	.container {

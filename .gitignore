@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+.wrangler/
+
+# Operating System
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Cloudflare Workers
+.dev.vars
+.wrangler/
+wrangler.toml
+
+# Misc
+*.swp
+*.bak
+*.tmp
+*~ 

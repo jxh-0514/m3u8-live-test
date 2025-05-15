@@ -1,0 +1,12 @@
+{
+    "name": "m3u8-live-test",
+    "version": "1.0.0",
+    "description": "IPTV 在线播放器",
+    "private": true,
+    "scripts": {
+        "deploy": "wrangler deploy"
+    },
+    "devDependencies": {
+        "wrangler": "^4.15.1"
+    }
+}
