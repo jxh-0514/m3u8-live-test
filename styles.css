@@ -43,7 +43,7 @@ body {
 }
 
 .sidebar {
-	width: 300px;
+	width: 400px;
 	background-color: var(--secondary-bg);
 	border-right: 1px solid var(--border-color);
 	display: flex;
@@ -220,12 +220,18 @@ body {
 .channel-actions {
 	padding: 0.5rem 1rem;
 	display: flex;
+	flex-direction: column;
 	gap: 0.5rem;
-	align-items: center;
 	border-bottom: 1px solid var(--border-color);
 }
 
+.check-buttons {
+	display: flex;
+	gap: 0.5rem;
+}
+
 .check-btn {
+	flex: 1;
 	padding: 0.5rem 1rem;
 	border: none;
 	border-radius: 4px;
@@ -254,10 +260,50 @@ body {
 	background-color: #c82333;
 }
 
+.check-btn.continue {
+	background-color: #17a2b8;
+}
+
+.check-btn.continue:hover {
+	background-color: #138496;
+}
+
+.check-btn.restart {
+	background-color: #ffc107;
+	color: #000;
+}
+
+.check-btn.restart:hover {
+	background-color: #e0a800;
+}
+
 .check-progress {
-	flex: 1;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 	font-size: 0.9rem;
 	color: var(--text-color);
+}
+
+.check-stats {
+	display: flex;
+	gap: 1rem;
+	font-size: 0.85rem;
+	color: var(--text-color);
+}
+
+.check-stats .stat {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.check-stats .available {
+	color: #28a745;
+}
+
+.check-stats .unavailable {
+	color: #dc3545;
 }
 
 /* 响应式布局 */
@@ -278,8 +324,11 @@ body {
 	}
 
 	.channel-actions {
-		flex-direction: column;
 		padding: 0.75rem;
+	}
+
+	.check-buttons {
+		flex-direction: column;
 	}
 
 	.check-btn {
@@ -287,8 +336,14 @@ body {
 	}
 
 	.check-progress {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
 		text-align: center;
-		margin-top: 0.5rem;
+	}
+
+	.check-stats {
+		justify-content: center;
 	}
 }
 
@@ -457,6 +512,33 @@ body {
 	}
 	.channel-item.active {
 		background: #004a77;
+	}
+	.channel-item.checking {
+		background-color: rgba(255, 193, 7, 0.15);
+	}
+	.channel-item.checking .status {
+		color: #ffc107;
+		background-color: rgba(255, 193, 7, 0.25);
+	}
+	.channel-item.available {
+		background-color: rgba(40, 167, 69, 0.15);
+	}
+	.channel-item.available:hover {
+		background-color: rgba(40, 167, 69, 0.25);
+	}
+	.channel-item.available .status {
+		color: #28a745;
+		background-color: rgba(40, 167, 69, 0.25);
+	}
+	.channel-item.unavailable {
+		background-color: rgba(220, 53, 69, 0.15);
+	}
+	.channel-item.unavailable:hover {
+		background-color: rgba(220, 53, 69, 0.25);
+	}
+	.channel-item.unavailable .status {
+		color: #dc3545;
+		background-color: rgba(220, 53, 69, 0.25);
 	}
 	.cors-notice {
 		background: #2c2a1c;

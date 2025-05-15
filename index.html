@@ -24,8 +24,24 @@
                 <button id="loadChannels" class="load-btn">加载频道</button>
             </div>
             <div class="channel-actions">
-                <button id="checkChannels" class="check-btn" disabled>检测频道</button>
-                <span id="checkProgress" class="check-progress"></span>
+                <div class="check-buttons">
+                    <button id="checkChannels" class="check-btn" disabled>检测频道</button>
+                    <button id="continueCheck" class="check-btn continue" style="display: none">继续检测</button>
+                    <button id="restartCheck" class="check-btn restart" style="display: none">重新检测</button>
+                </div>
+                <div class="check-progress">
+                    <span id="checkProgress"></span>
+                    <div id="checkStats" class="check-stats">
+                        <div class="stat available">
+                            <span>可用:</span>
+                            <span id="availableCount">0</span>
+                        </div>
+                        <div class="stat unavailable">
+                            <span>不可用:</span>
+                            <span id="unavailableCount">0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="channel-list" id="channelList">
                 <!-- 频道列表将通过JavaScript动态加载 -->
@@ -54,7 +70,69 @@
         let currentChannels = [];
         let isChecking = false;
         const checkButton = document.getElementById('checkChannels');
+        const continueButton = document.getElementById('continueCheck');
+        const restartButton = document.getElementById('restartCheck');
         const progressSpan = document.getElementById('checkProgress');
+        const availableCountSpan = document.getElementById('availableCount');
+        const unavailableCountSpan = document.getElementById('unavailableCount');
+
+        /**
+         * 更新检测统计
+         */
+        function updateCheckStats() {
+            const available = currentChannels.filter(c => c.isAvailable === true).length;
+            const unavailable = currentChannels.filter(c => c.isAvailable === false).length;
+            availableCountSpan.textContent = available;
+            unavailableCountSpan.textContent = unavailable;
+        }
+
+        /**
+         * 更新按钮状态
+         * @param {string} state - 当前状态：'idle' | 'checking' | 'paused'
+         */
+        function updateButtonState(state) {
+            switch (state) {
+                case 'idle':
+                    checkButton.textContent = '检测频道';
+                    checkButton.classList.remove('checking');
+                    checkButton.style.display = '';
+                    continueButton.style.display = 'none';
+                    restartButton.style.display = 'none';
+                    break;
+                case 'checking':
+                    checkButton.textContent = '中断检测';
+                    checkButton.classList.add('checking');
+                    checkButton.style.display = '';
+                    continueButton.style.display = 'none';
+                    restartButton.style.display = 'none';
+                    break;
+                case 'paused':
+                    checkButton.style.display = 'none';
+                    continueButton.style.display = '';
+                    restartButton.style.display = '';
+                    break;
+            }
+        }
+
+        /**
+         * 重置频道状态和检测进度
+         */
+        function resetChannelStatus() {
+            // 重置频道状态
+            currentChannels = currentChannels.map(channel => ({
+                name: channel.name,
+                url: channel.url
+            }));
+            // 重置检测进度
+            progressSpan.textContent = '';
+            // 重置统计数据
+            availableCountSpan.textContent = '0';
+            unavailableCountSpan.textContent = '0';
+            // 重置检测器状态
+            channelChecker.lastCheckedIndex = -1;
+            // 更新界面
+            updateChannelList(currentChannels);
+        }
 
         /**
          * 加载频道列表
@@ -68,52 +146,78 @@
                 checkButton.disabled = false;
                 progressSpan.textContent = '';
                 updateChannelList(currentChannels);
+                updateCheckStats();
+                updateButtonState('idle');
             } catch (error) {
                 currentChannels = [];
                 checkButton.disabled = true;
                 progressSpan.textContent = '';
+                updateCheckStats();
             }
         }
 
         /**
          * 更新频道列表显示
          * @param {Array<{name: string, url: string, isAvailable?: boolean}>} channels - 频道列表
+         * @param {number} [updateIndex] - 需要更新的频道索引，如果不提供则更新整个列表
          */
-        function updateChannelList(channels) {
+        function updateChannelList(channels, updateIndex) {
             const channelList = document.getElementById('channelList');
-            channelList.innerHTML = '';
 
-            channels.forEach((channel, index) => {
-                const channelDiv = document.createElement('div');
-                let className = 'channel-item';
-                let status = '';
-
-                if (channel.isAvailable === true) {
-                    className += ' available';
-                    status = '✓ 可用';
-                } else if (channel.isAvailable === false) {
-                    className += ' unavailable';
-                    status = '✗ 不可用';
+            if (updateIndex === undefined) {
+                // 更新整个列表
+                channelList.innerHTML = '';
+                channels.forEach((channel, index) => {
+                    channelList.appendChild(createChannelElement(channel, index));
+                });
+            } else {
+                // 只更新指定索引的频道
+                const oldElement = channelList.children[updateIndex];
+                if (oldElement) {
+                    const newElement = createChannelElement(channels[updateIndex], updateIndex);
+                    channelList.replaceChild(newElement, oldElement);
                 }
+            }
+        }
 
-                channelDiv.className = className;
-                channelDiv.innerHTML = `
-                    <span class="name">${channel.name}</span>
-                    ${status ? `<span class="status">${status}</span>` : ''}
-                `;
+        /**
+         * 创建频道元素
+         * @param {Object} channel - 频道信息
+         * @param {number} index - 频道索引
+         * @returns {HTMLElement} 频道元素
+         */
+        function createChannelElement(channel, index) {
+            const channelDiv = document.createElement('div');
+            let className = 'channel-item';
+            let status = '';
 
-                if (channel.isAvailable !== false) {
-                    channelDiv.onclick = () => {
-                        document.querySelectorAll('.channel-item').forEach((item) => {
-                            item.classList.remove('active');
-                        });
-                        channelDiv.classList.add('active');
-                        player.play(channel.url);
-                    };
-                }
+            if (channel.isAvailable === true) {
+                className += ' available';
+                status = '✓ 可用';
+            } else if (channel.isAvailable === false) {
+                className += ' unavailable';
+                status = '✗ 不可用';
+            }
 
-                channelList.appendChild(channelDiv);
-            });
+            channelDiv.className = className;
+            channelDiv.innerHTML = `
+                <span class="name">${channel.name}</span>
+                ${status ? `<span class="status">${status}</span>` : ''}
+            `;
+
+            if (channel.isAvailable !== false) {
+                channelDiv.onclick = () => {
+                    document.querySelectorAll('.channel-item').forEach((item) => {
+                        item.classList.remove('active');
+                    });
+                    channelDiv.classList.add('active');
+                    // 更新输入框中的地址
+                    document.getElementById('streamUrl').value = channel.url;
+                    player.play(channel.url);
+                };
+            }
+
+            return channelDiv;
         }
 
         // 绑定加载频道列表事件
@@ -123,69 +227,88 @@
         });
 
         // 绑定检测频道事件
-        checkButton.addEventListener('click', async () => {
+        checkButton.addEventListener('click', () => {
             if (isChecking) {
                 // 中断检测
                 isChecking = false;
-                checkButton.textContent = '检测频道';
-                checkButton.classList.remove('checking');
+                channelChecker.stopChecking(); // 调用中断方法
+                updateButtonState('paused');
                 notification.warning('已中断频道检测');
                 return;
             }
+            startChannelCheck(0);
+        });
 
+        // 绑定继续检测事件
+        continueButton.addEventListener('click', () => {
+            const startIndex = channelChecker.getLastCheckedIndex() + 1;
+            if (startIndex >= currentChannels.length) {
+                notification.warning('已完成所有频道检测');
+                updateButtonState('idle');
+                return;
+            }
+            notification.info(`从第 ${startIndex + 1} 个频道继续检测...`);
+            startChannelCheck(startIndex);
+        });
+
+        // 绑定重新检测事件
+        restartButton.addEventListener('click', () => {
+            channelChecker.stopChecking(); // 确保停止之前的检测
+            resetChannelStatus();
+            notification.info('重新开始检测频道...');
+            startChannelCheck(0);
+        });
+
+        /**
+         * 开始检测频道
+         * @param {number} startIndex - 开始检测的索引
+         */
+        async function startChannelCheck(startIndex) {
             if (currentChannels.length === 0) {
                 notification.warning('请先加载频道列表');
                 return;
             }
 
             isChecking = true;
-            checkButton.textContent = '中断检测';
-            checkButton.classList.add('checking');
-            notification.info('开始检测频道可用性...');
+            updateButtonState('checking');
+
+            // 如果是重新开始检测，显示初始进度
+            if (startIndex === 0) {
+                progressSpan.textContent = Utils.formatProgress(0, currentChannels.length);
+            }
 
             try {
-                let checkedCount = 0;
-                const results = [];
-
-                for (const channel of currentChannels) {
-                    if (!isChecking) break;
-
-                    const channelDiv = document.querySelector(`.channel-item:nth-child(${results.length + 1})`);
-                    channelDiv.classList.add('checking');
-
-                    try {
-                        const isAvailable = await channelChecker.checkChannel(channel.url);
-                        results.push({
-                            ...channel,
-                            isAvailable
-                        });
-                    } catch {
-                        results.push({
-                            ...channel,
-                            isAvailable: false
-                        });
-                    }
-
-                    checkedCount++;
-                    progressSpan.textContent = Utils.formatProgress(checkedCount, currentChannels.length);
-
-                    // 更新已检测的频道显示
-                    updateChannelList([...results, ...currentChannels.slice(results.length)]);
-                }
+                await channelChecker.checkChannels(
+                    currentChannels,
+                    (checked, total) => {
+                        if (isChecking) { // 只在检测进行时更新进度
+                            progressSpan.textContent = Utils.formatProgress(checked, total);
+                        }
+                    },
+                    (result, index) => {
+                        if (isChecking) { // 只在检测进行时更新结果
+                            currentChannels[index] = result;
+                            updateChannelList(currentChannels, index);
+                            updateCheckStats();
+                        }
+                    },
+                    startIndex
+                );
 
                 if (isChecking) {
-                    notification.success(Utils.formatResults(results));
+                    notification.success(Utils.formatResults(currentChannels));
+                    updateButtonState('idle');
                 }
             } catch (error) {
-                notification.error('检测过程中发生错误');
-                console.error('检测错误:', error);
+                if (error.message !== '检测被中断') {
+                    notification.error('检测过程中发生错误');
+                    console.error('检测错误:', error);
+                }
+                updateButtonState('paused');
             } finally {
                 isChecking = false;
-                checkButton.textContent = '检测频道';
-                checkButton.classList.remove('checking');
-                progressSpan.textContent = '';
             }
-        });
+        }
 
         // 绑定播放流事件
         document.getElementById('playStream').addEventListener('click', () => {
