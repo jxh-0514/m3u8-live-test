@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPTV 播放器</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="src/styles/main.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dplayer@1.27.1/dist/DPlayer.min.js"></script>
@@ -16,27 +16,44 @@
         <div class="sidebar">
             <div class="channel-header">
                 <h2>频道列表</h2>
-                <button id="toggleTheme" class="theme-toggle">切换主题</button>
+                <button id="toggleTheme" class="theme-toggle" title="切换主题">
+                    <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="theme-icon moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
             </div>
             <div class="channel-input">
+                <select id="channelSource" class="source-select">
+                    <option value="https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u">国际频道
+                    </option>
+                    <!-- 可以添加更多预设频道源 -->
+                </select>
                 <div class="url-select-group">
-                    <select id="channelSource" class="source-select">
-                        <option value="https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u">国际频道
-                        </option>
-                        <!-- 可以添加更多预设频道源 -->
-                    </select>
-                    <input type="text" id="channelUrl" class="url-input" placeholder="输入频道列表地址 (m3u8)"
+                    <input type="text" id="channelUrl" class="input" placeholder="输入频道列表地址 (m3u8)"
                         value="https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u">
                     <button id="addSource" class="add-btn" title="添加到下拉列表">+</button>
                 </div>
-                <button id="loadChannels" class="load-btn">加载频道</button>
+                <button id="loadChannels" class="btn btn-primary">加载频道</button>
                 <input type="text" id="channelSearch" class="search-input" placeholder="搜索频道...">
             </div>
             <div class="channel-actions">
                 <div class="check-buttons">
-                    <button id="checkChannels" class="check-btn" disabled>检测频道</button>
-                    <button id="continueCheck" class="check-btn continue" style="display: none">继续检测</button>
-                    <button id="restartCheck" class="check-btn restart" style="display: none">重新检测</button>
+                    <button id="checkChannels" class="btn btn-primary" disabled>检测频道</button>
+                    <button id="continueCheck" class="btn btn-secondary" style="display: none">继续检测</button>
+                    <button id="restartCheck" class="btn btn-warning" style="display: none">重新检测</button>
                 </div>
                 <div class="check-progress">
                     <span id="checkProgress"></span>
@@ -61,8 +78,8 @@
                 <div id="dplayer"></div>
             </div>
             <div class="player-header">
-                <input type="text" id="streamUrl" class="url-input" placeholder="输入直播流地址 (m3u8)">
-                <button id="playStream" class="play-btn">播放</button>
+                <input type="text" id="streamUrl" class="input" placeholder="输入直播流地址 (m3u8)">
+                <button id="playStream" class="btn btn-primary">播放</button>
                 <div class="proxy-toggle">
                     <label class="switch">
                         <input type="checkbox" id="proxyToggle" checked>
@@ -77,614 +94,7 @@
         </div>
     </div>
 
-    <script type="module">
-        import { player } from './player.js';
-        import { channelChecker } from './channelChecker.js';
-        import Utils from './utils.js';
-        import { notification } from './notification.js';
-
-        // 设置 Worker URL（部署后需要更新为实际的 Worker URL）
-        const WORKER_URL = 'https://m3u8-proxy.1942499981.workers.dev';
-        player.setProxyUrl(WORKER_URL);
-
-        let currentChannels = [];
-        let isChecking = false;
-        const checkButton = document.getElementById('checkChannels');
-        const continueButton = document.getElementById('continueCheck');
-        const restartButton = document.getElementById('restartCheck');
-        const progressSpan = document.getElementById('checkProgress');
-        const availableCountSpan = document.getElementById('availableCount');
-        const unavailableCountSpan = document.getElementById('unavailableCount');
-
-        /**
-         * 更新检测统计
-         */
-        function updateCheckStats() {
-            const available = currentChannels.filter(c => c.isAvailable === true).length;
-            const unavailable = currentChannels.filter(c => c.isAvailable === false).length;
-            availableCountSpan.textContent = available;
-            unavailableCountSpan.textContent = unavailable;
-        }
-
-        /**
-         * 更新按钮状态
-         * @param {string} state - 当前状态：'idle' | 'checking' | 'paused'
-         */
-        function updateButtonState(state) {
-            switch (state) {
-                case 'idle':
-                    checkButton.textContent = '检测频道';
-                    checkButton.classList.remove('checking');
-                    checkButton.style.display = '';
-                    continueButton.style.display = 'none';
-                    restartButton.style.display = 'none';
-                    break;
-                case 'checking':
-                    checkButton.textContent = '中断检测';
-                    checkButton.classList.add('checking');
-                    checkButton.style.display = '';
-                    continueButton.style.display = 'none';
-                    restartButton.style.display = 'none';
-                    break;
-                case 'paused':
-                    checkButton.style.display = 'none';
-                    continueButton.style.display = '';
-                    restartButton.style.display = '';
-                    break;
-            }
-        }
-
-        /**
-         * 重置频道状态和检测进度
-         */
-        function resetChannelStatus() {
-            // 重置频道状态
-            currentChannels = currentChannels.map(channel => ({
-                name: channel.name,
-                url: channel.url,
-                group: channel.group // 保留分组信息
-            }));
-
-            // 重置检测进度
-            progressSpan.textContent = '';
-
-            // 重置统计数据
-            availableCountSpan.textContent = '0';
-            unavailableCountSpan.textContent = '0';
-
-            // 重置检测器状态
-            channelChecker.lastCheckedIndex = -1;
-
-            // 更新界面，清除所有频道的状态标记
-            updateChannelList(currentChannels);
-        }
-
-        /**
-         * 加载频道列表
-         * @param {string} url - 频道列表地址
-         */
-        async function loadChannelList(url) {
-            if (!url) return;
-
-            try {
-                currentChannels = await player.loadChannels(url);
-                checkButton.disabled = false;
-                progressSpan.textContent = '';
-                updateChannelList(currentChannels);
-                updateCheckStats();
-                updateButtonState('idle');
-            } catch (error) {
-                currentChannels = [];
-                checkButton.disabled = true;
-                progressSpan.textContent = '';
-                updateCheckStats();
-            }
-        }
-
-        /**
-         * 更新频道列表显示
-         * @param {Array<{name: string, url: string, group: string, isAvailable?: boolean}>} channels - 频道列表
-         * @param {number} [updateIndex] - 需要更新的频道索引
-         */
-        function updateChannelList(channels, updateIndex) {
-            const channelList = document.getElementById('channelList');
-
-            if (updateIndex === undefined) {
-                // 按分组组织频道
-                const groups = {};
-                channels.forEach((channel, index) => {
-                    const group = channel.group || '未分组';
-                    if (!groups[group]) {
-                        groups[group] = [];
-                    }
-                    groups[group].push({ ...channel, index });
-                });
-
-                // 清空现有列表
-                channelList.innerHTML = '';
-
-                // 渲染分组和频道
-                Object.entries(groups).forEach(([groupName, groupChannels]) => {
-                    // 创建分组容器
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'channel-group';
-
-                    // 创建分组标题
-                    const groupHeader = document.createElement('div');
-                    groupHeader.className = 'group-header';
-                    groupHeader.innerHTML = `
-                        <div class="group-title">
-                            <span class="group-toggle">▼</span>
-                            <span>${groupName}</span>
-                            <span class="channel-count">(${groupChannels.length})</span>
-                        </div>
-                    `;
-
-                    // 创建分组内的频道容器
-                    const channelsDiv = document.createElement('div');
-                    channelsDiv.className = 'group-channels';
-                    groupChannels.forEach(channel => {
-                        channelsDiv.appendChild(createChannelElement(channel, channel.index));
-                    });
-
-                    // 添加分组折叠功能
-                    groupHeader.addEventListener('click', () => {
-                        channelsDiv.style.display = channelsDiv.style.display === 'none' ? 'block' : 'none';
-                        const toggle = groupHeader.querySelector('.group-toggle');
-                        toggle.textContent = channelsDiv.style.display === 'none' ? '▶' : '▼';
-                    });
-
-                    groupDiv.appendChild(groupHeader);
-                    groupDiv.appendChild(channelsDiv);
-                    channelList.appendChild(groupDiv);
-                });
-            } else {
-                // 更新单个频道
-                const oldElement = channelList.querySelector(`[data-index="${updateIndex}"]`);
-                if (oldElement) {
-                    const newElement = createChannelElement(channels[updateIndex], updateIndex);
-                    oldElement.replaceWith(newElement);
-                }
-            }
-        }
-
-        /**
-         * 创建频道元素
-         * @param {Object} channel - 频道信息
-         * @param {number} index - 频道索引
-         * @returns {HTMLElement} 频道元素
-         */
-        function createChannelElement(channel, index) {
-            const channelDiv = document.createElement('div');
-            let className = 'channel-item';
-            let status = '';
-
-            // 只有在明确设置了状态时才显示状态标记
-            if (channel.isAvailable === true) {
-                className += ' available';
-                status = '✓ 可用';
-            } else if (channel.isAvailable === false) {
-                className += ' unavailable';
-                status = '✗ 不可用';
-            }
-
-            channelDiv.className = className;
-            channelDiv.setAttribute('data-index', index);
-            channelDiv.setAttribute('data-name', channel.name.toLowerCase());
-            channelDiv.innerHTML = `
-                <div class="channel-info">
-                    <span class="name">${channel.name}</span>
-                    ${status ? `<span class="status">${status}</span>` : ''}
-                </div>
-            `;
-
-            // 只有未被标记为不可用的频道才能点击播放
-            if (channel.isAvailable !== false) {
-                channelDiv.onclick = () => {
-                    document.querySelectorAll('.channel-item').forEach((item) => {
-                        item.classList.remove('active');
-                    });
-                    channelDiv.classList.add('active');
-                    document.getElementById('streamUrl').value = channel.url;
-                    player.play(channel.url);
-                };
-            }
-
-            return channelDiv;
-        }
-
-        // 频道源管理
-        class SourceManager {
-            constructor() {
-                this.storageKey = 'channelSources';
-                // 定义默认频道源
-                this.defaultSources = {
-                    "国际频道": "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u",
-                    "IPTV频道": "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/IPTV.m3u",
-                };
-                this.sources = this.loadSources();
-                this.initializeUI();
-                this.addContextMenu();
-            }
-
-            // 加载保存的频道源
-            loadSources() {
-                const savedSources = localStorage.getItem(this.storageKey);
-                // 如果本地存储中有数据，使用保存的数据
-                if (savedSources) {
-                    const parsed = JSON.parse(savedSources);
-                    // 确保至少包含默认频道源
-                    return { ...this.defaultSources, ...parsed };
-                }
-                // 否则使用默认频道源
-                return { ...this.defaultSources };
-            }
-
-            // 更新下拉框选项
-            updateSourceSelect() {
-                const select = document.getElementById('channelSource');
-                const urlInput = document.getElementById('channelUrl');
-
-                // 清空现有选项
-                select.innerHTML = '';
-
-                // 添加所有频道源选项
-                Object.entries(this.sources).forEach(([name, url]) => {
-                    const option = document.createElement('option');
-                    option.value = url;
-                    option.textContent = name;
-                    select.appendChild(option);
-                });
-
-                // 更新输入框的值为当前选中的频道源
-                if (select.options.length > 0) {
-                    urlInput.value = select.value;
-                }
-            }
-
-            // 初始化UI和事件监听
-            initializeUI() {
-                const select = document.getElementById('channelSource');
-                const urlInput = document.getElementById('channelUrl');
-                const addButton = document.getElementById('addSource');
-
-                // 更新下拉框
-                this.updateSourceSelect();
-
-                // 下拉框改变事件
-                select.addEventListener('change', async (e) => {
-                    urlInput.value = e.target.value;
-                    // 自动加载并播放第一个频道
-                    try {
-                        await loadChannelList(e.target.value);
-                        // 如果有频道，自动播放第一个
-                        if (currentChannels && currentChannels.length > 0) {
-                            const firstChannel = currentChannels[0];
-                            document.getElementById('streamUrl').value = firstChannel.url;
-                            player.play(firstChannel.url);
-
-                            // 标记第一个频道为选中状态
-                            const firstChannelElement = document.querySelector('.channel-item');
-                            if (firstChannelElement) {
-                                document.querySelectorAll('.channel-item').forEach((item) => {
-                                    item.classList.remove('active');
-                                });
-                                firstChannelElement.classList.add('active');
-                            }
-                        }
-                    } catch (error) {
-                        notification.error('加载频道列表失败');
-                    }
-                });
-
-                // 添加按钮点击事件
-                addButton.addEventListener('click', () => {
-                    const url = urlInput.value.trim();
-                    if (!url) {
-                        notification.warning('请输入频道列表地址');
-                        return;
-                    }
-
-                    const name = prompt('请输入频道源名称：');
-                    if (name) {
-                        this.addSource(name.trim(), url);
-                    }
-                });
-            }
-
-            // 添加新的频道源
-            addSource(name, url) {
-                if (!name || !url) return false;
-                if (this.sources[name]) {
-                    notification.warning('该名称已存在');
-                    return false;
-                }
-                this.sources[name] = url;
-                this.saveSources();
-                this.updateSourceSelect();
-                notification.success('添加成功');
-                return true;
-            }
-
-            // 保存频道源到本地存储
-            saveSources() {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.sources));
-            }
-
-            // 删除频道源
-            removeSource(name) {
-                if (name && this.sources[name]) {
-                    delete this.sources[name];
-                    this.saveSources();
-                    this.updateSourceSelect();
-                    return true;
-                }
-                return false;
-            }
-
-            // 添加右键菜单
-            addContextMenu() {
-                const select = document.getElementById('channelSource');
-                const menu = document.createElement('div');
-                menu.className = 'source-context-menu';
-                menu.innerHTML = `
-                    <div class="menu-item" data-action="delete">删除此频道源</div>
-                    <div class="menu-item" data-action="export">导出所有频道源</div>
-                    <div class="menu-item" data-action="import">导入频道源</div>
-                    <div class="menu-item" data-action="moveup">上移</div>
-                    <div class="menu-item" data-action="movedown">下移</div>
-                `;
-                document.body.appendChild(menu);
-
-                // 右键菜单事件
-                select.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    const rect = select.getBoundingClientRect();
-                    menu.style.display = 'block';
-                    menu.style.left = e.clientX + 'px';
-                    menu.style.top = e.clientY + 'px';
-                });
-
-                // 点击其他地方关闭菜单
-                document.addEventListener('click', () => {
-                    menu.style.display = 'none';
-                });
-
-                // 菜单项点击事件
-                menu.addEventListener('click', (e) => {
-                    const action = e.target.dataset.action;
-                    const selectedIndex = select.selectedIndex;
-                    const selectedName = select.options[selectedIndex].text;
-
-                    switch (action) {
-                        case 'delete':
-                            if (confirm(`是否删除"${selectedName}"？`)) {
-                                this.removeSource(selectedName);
-                            }
-                            break;
-                        case 'export':
-                            this.exportSources();
-                            break;
-                        case 'import':
-                            this.importSources();
-                            break;
-                        case 'moveup':
-                            if (selectedIndex > 0) {
-                                this.moveSource(selectedIndex, selectedIndex - 1);
-                            }
-                            break;
-                        case 'movedown':
-                            if (selectedIndex < select.options.length - 1) {
-                                this.moveSource(selectedIndex, selectedIndex + 1);
-                            }
-                            break;
-                    }
-                });
-            }
-
-            // 导出频道源
-            exportSources() {
-                const data = JSON.stringify(this.sources, null, 2);
-                const blob = new Blob([data], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'channel_sources.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-
-            // 导入频道源
-            importSources() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-
-                input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            try {
-                                const imported = JSON.parse(e.target.result);
-                                if (typeof imported === 'object') {
-                                    this.sources = { ...this.sources, ...imported };
-                                    this.saveSources();
-                                    this.updateSourceSelect();
-                                    notification.success('导入成功');
-                                }
-                            } catch (err) {
-                                notification.error('导入失败：无效的文件格式');
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                };
-                input.click();
-            }
-
-            // 移动频道源位置
-            moveSource(fromIndex, toIndex) {
-                const select = document.getElementById('channelSource');
-                const options = Array.from(select.options);
-                const movedOption = options[fromIndex];
-
-                // 更新sources对象的顺序
-                const newSources = {};
-                options.forEach((opt, index) => {
-                    if (index === toIndex) {
-                        newSources[movedOption.text] = this.sources[movedOption.text];
-                    }
-                    if (index !== fromIndex) {
-                        newSources[opt.text] = this.sources[opt.text];
-                    }
-                });
-
-                this.sources = newSources;
-                this.saveSources();
-                this.updateSourceSelect();
-                select.selectedIndex = toIndex;
-            }
-        }
-
-        // 初始化频道源管理器
-        const sourceManager = new SourceManager();
-
-        // 修改加载频道列表事件
-        document.getElementById('loadChannels').addEventListener('click', () => {
-            const url = document.getElementById('channelUrl').value;
-            if (!url) {
-                notification.warning('请选择或输入频道列表地址');
-                return;
-            }
-            loadChannelList(url);
-        });
-
-        // 修改检测按钮的事件处理
-        checkButton.addEventListener('click', () => {
-            if (isChecking) {
-                // 中断检测
-                isChecking = false;
-                channelChecker.stopChecking();
-                updateButtonState('paused');
-                notification.warning('已中断频道检测');
-                return;
-            }
-
-            // 开始新的检测
-            startChannelCheck(0);
-        });
-
-        // 修改继续检测按钮的事件处理
-        continueButton.addEventListener('click', () => {
-            const startIndex = channelChecker.getLastCheckedIndex() + 1;
-            if (startIndex >= currentChannels.length) {
-                notification.warning('已完成所有频道检测');
-                updateButtonState('idle');
-                return;
-            }
-            notification.info(`从第 ${startIndex + 1} 个频道继续检测...`);
-            startChannelCheck(startIndex);
-        });
-
-        // 修改重新检测按钮的事件处理
-        restartButton.addEventListener('click', () => {
-            channelChecker.stopChecking();
-            startChannelCheck(0); // 从头开始检测
-        });
-
-        /**
-         * 开始检测频道
-         * @param {number} startIndex - 开始检测的索引
-         */
-        async function startChannelCheck(startIndex) {
-            if (currentChannels.length === 0) {
-                notification.warning('请先加载频道列表');
-                return;
-            }
-
-            // 如果是从头开始检测，先重置所有状态
-            if (startIndex === 0) {
-                resetChannelStatus();
-            }
-
-            isChecking = true;
-            updateButtonState('checking');
-
-            // 显示初始进度
-            progressSpan.textContent = Utils.formatProgress(startIndex, currentChannels.length);
-
-            try {
-                await channelChecker.checkChannels(
-                    currentChannels,
-                    (checked, total) => {
-                        if (isChecking) {
-                            progressSpan.textContent = Utils.formatProgress(checked, total);
-                        }
-                    },
-                    (result, index) => {
-                        if (isChecking) {
-                            currentChannels[index] = result;
-                            updateChannelList(currentChannels, index);
-                            updateCheckStats();
-                        }
-                    },
-                    startIndex
-                );
-
-                if (isChecking) {
-                    notification.success(Utils.formatResults(currentChannels));
-                    updateButtonState('idle');
-                }
-            } catch (error) {
-                if (error.message !== '检测被中断') {
-                    notification.error('检测过程中发生错误');
-                    console.error('检测错误:', error);
-                }
-                updateButtonState('paused');
-            } finally {
-                isChecking = false;
-            }
-        }
-
-        // 绑定播放流事件
-        document.getElementById('playStream').addEventListener('click', () => {
-            const url = document.getElementById('streamUrl').value;
-            if (url) {
-                player.play(url);
-            }
-        });
-
-        // 添加搜索功能
-        document.getElementById('channelSearch').addEventListener('input', (e) => {
-            const searchText = e.target.value.toLowerCase();
-            const channelItems = document.querySelectorAll('.channel-item');
-            const groups = document.querySelectorAll('.channel-group');
-
-            groups.forEach(group => {
-                let hasVisibleChannels = false;
-                const channels = group.querySelectorAll('.channel-item');
-
-                channels.forEach(channel => {
-                    const name = channel.getAttribute('data-name');
-                    const visible = name.includes(searchText);
-                    channel.style.display = visible ? 'block' : 'none';
-                    if (visible) hasVisibleChannels = true;
-                });
-
-                // 如果组内没有可见的频道，隐藏整个组
-                group.style.display = hasVisibleChannels ? 'block' : 'none';
-            });
-        });
-
-        // 页面加载完成后自动加载默认频道列表
-        window.addEventListener('DOMContentLoaded', () => {
-            const defaultUrl = document.getElementById('channelUrl').value;
-            loadChannelList(defaultUrl);
-        });
-
-        localStorage.removeItem('channelSources');
-    </script>
+    <script type="module" src="src/js/app.js"></script>
 </body>
 
 </html>

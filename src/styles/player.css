@@ -1,0 +1,113 @@
+.main-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background-color: var(--primary-bg);
+}
+
+.player-container {
+	flex: 1;
+	background-color: #000;
+	position: relative;
+	overflow: hidden;
+}
+
+#dplayer {
+	width: 100%;
+	height: 100%;
+}
+
+.player-header {
+	padding: 16px;
+	background-color: var(--primary-bg);
+	border-bottom: 1px solid var(--border-color);
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}
+
+.player-header .input {
+	flex: 1;
+}
+
+.proxy-toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.proxy-label {
+	font-size: 0.9rem;
+	color: var(--text-color);
+	opacity: 0.8;
+}
+
+.url-input {
+	flex: 1;
+	padding: 0.5rem;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background-color: var(--primary-bg);
+	color: var(--text-color);
+}
+
+.load-btn,
+.play-btn {
+	padding: 0.5rem 1rem;
+	border: none;
+	border-radius: 4px;
+	background-color: #f27441;
+	color: white;
+	cursor: pointer;
+	transition: background-color 0.3s;
+	white-space: nowrap;
+}
+
+.load-btn:hover,
+.play-btn:hover {
+	background-color: #d65b2b;
+}
+
+/* DPlayer 样式覆盖 */
+.dplayer {
+	width: 100%;
+	height: 100%;
+}
+
+.dplayer-video-wrap {
+	background-color: #000;
+}
+
+.dplayer-controller {
+	background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+}
+
+.dplayer-controller .dplayer-icons {
+	padding: 0 16px;
+}
+
+.dplayer-loading {
+	backdrop-filter: blur(4px);
+}
+
+.dplayer-notice {
+	background: rgba(0, 0, 0, 0.8);
+	border-radius: 4px;
+	padding: 8px 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+	.player-header {
+		flex-wrap: wrap;
+	}
+
+	.player-header .input {
+		min-width: 100%;
+	}
+
+	.proxy-toggle {
+		margin-left: auto;
+	}
+}

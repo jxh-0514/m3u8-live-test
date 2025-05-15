@@ -1,0 +1,155 @@
+/* 频道项样式 */
+.channel-item {
+	padding: 12px 16px;
+	margin: 4px 0;
+	border-radius: 6px;
+	background-color: var(--primary-bg);
+	border: 1px solid var(--border-color);
+	cursor: pointer;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+}
+
+.channel-item:hover {
+	background-color: var(--hover-color);
+	transform: translateX(4px);
+}
+
+.channel-item.active {
+	background-color: rgba(74, 158, 255, 0.1);
+	border-color: #4a9eff;
+	position: relative;
+}
+
+.channel-item.active::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 4px;
+	background-color: #4a9eff;
+	border-radius: 4px 0 0 4px;
+}
+
+.channel-item.active::after {
+	content: "▶";
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #4a9eff;
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.channel-item .channel-info {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	padding-right: 20px;
+}
+
+.channel-item .name {
+	flex: 1;
+	font-size: 0.95rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.channel-item .status {
+	font-size: 0.8rem;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background-color: var(--secondary-bg);
+}
+
+.channel-item.available .status {
+	color: #4caf50;
+}
+
+.channel-item.unavailable .status {
+	color: #f44336;
+	opacity: 0.8;
+}
+
+.channel-item.unavailable {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+/* 频道组样式 */
+.channel-group {
+	margin: 16px 0;
+}
+
+.channel-group-header {
+	padding: 8px 16px;
+	font-weight: 500;
+	color: var(--text-color);
+	opacity: 0.8;
+	font-size: 0.9rem;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.channel-group-header::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background-color: var(--border-color);
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.channel-item {
+	animation: fadeIn 0.3s ease;
+}
+
+/* 加载中状态 */
+.channel-item.checking {
+	position: relative;
+}
+
+.channel-item.checking::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+	animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+/* 暗色主题适配 */
+.dark-mode .channel-item.active {
+	background-color: rgba(74, 158, 255, 0.15);
+}
+
+.dark-mode .channel-item.checking::after {
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+}

@@ -1,0 +1,105 @@
+.sidebar {
+	width: 320px;
+	height: 100vh;
+	background-color: var(--primary-bg);
+	border-right: 1px solid var(--border-color);
+	display: flex;
+	flex-direction: column;
+	transition: width 0.3s ease;
+}
+
+.channel-header {
+	padding: 16px;
+	border-bottom: 1px solid var(--border-color);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+}
+
+.channel-header h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	font-weight: 500;
+}
+
+.channel-input {
+	padding: 16px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.channel-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 16px;
+}
+
+/* 自定义滚动条 */
+.channel-list::-webkit-scrollbar {
+	width: 8px;
+}
+
+.channel-list::-webkit-scrollbar-track {
+	background: var(--primary-bg);
+}
+
+.channel-list::-webkit-scrollbar-thumb {
+	background: var(--border-color);
+	border-radius: 4px;
+}
+
+.channel-list::-webkit-scrollbar-thumb:hover {
+	background: #666;
+}
+
+.channel-actions {
+	padding: 16px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.check-buttons {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.check-progress {
+	font-size: 0.9rem;
+	color: var(--text-color);
+	opacity: 0.8;
+}
+
+.check-stats {
+	display: flex;
+	gap: 16px;
+	margin-top: 8px;
+}
+
+.stat {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.85rem;
+}
+
+.stat.available {
+	color: #4caf50;
+}
+
+.stat.unavailable {
+	color: #f44336;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+	.sidebar {
+		width: 100%;
+		height: auto;
+		border-right: none;
+		border-bottom: 1px solid var(--border-color);
+	}
+
+	.channel-list {
+		max-height: 50vh;
+	}
+}

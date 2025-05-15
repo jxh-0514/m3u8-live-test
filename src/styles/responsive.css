@@ -1,0 +1,101 @@
+@media (max-width: 768px) {
+	.container {
+		flex-direction: column;
+	}
+
+	.sidebar {
+		width: 100%;
+		height: 50vh;
+	}
+
+	.main-content {
+		height: 50vh;
+	}
+}
+
+@media (max-width: 480px) {
+	.player-header {
+		flex-direction: column;
+	}
+
+	.channel-header {
+		flex-direction: column;
+		gap: 0.5rem;
+		text-align: center;
+	}
+
+	.theme-toggle {
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 1024px) {
+	.sidebar {
+		width: 300px;
+	}
+
+	.channel-header h2 {
+		font-size: 1rem;
+	}
+
+	.url-input {
+		font-size: 0.9rem;
+	}
+}
+
+@media screen and (max-width: 767px) {
+	.container {
+		flex-direction: column;
+	}
+
+	.sidebar {
+		width: 100%;
+		height: 40vh;
+		min-height: 300px;
+	}
+
+	.main-content {
+		height: 60vh;
+	}
+
+	.player-header {
+		flex-wrap: wrap;
+	}
+}
+
+@media screen and (max-width: 575px) {
+	.channel-header {
+		flex-direction: column;
+		gap: 0.5rem;
+		align-items: stretch;
+	}
+
+	.theme-toggle {
+		width: 100%;
+	}
+
+	.player-header {
+		gap: 0.5rem;
+	}
+
+	.load-btn,
+	.play-btn {
+		width: 100%;
+	}
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+	.container {
+		flex-direction: row;
+	}
+
+	.sidebar {
+		width: 40%;
+		height: 100vh;
+	}
+
+	.main-content {
+		width: 60%;
+		height: 100vh;
+	}
+}
