@@ -17,6 +17,14 @@ class App {
 
 		player.setProxyUrl(WORKER_URL);
 		this.initializeEventListeners();
+
+		// 页面加载完成后自动加载频道列表
+		document.addEventListener("DOMContentLoaded", () => {
+			const defaultUrl = this.ui.channelUrlInput.value;
+			if (defaultUrl) {
+				this.loadChannelList(defaultUrl);
+			}
+		});
 	}
 
 	initializeEventListeners() {

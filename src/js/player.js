@@ -9,12 +9,13 @@ class Player {
 		this.player = null;
 		this.currentUrl = "";
 		this.retryCount = 0;
-		this.maxRetries = 1; // 自动重连最大次数
+		this.maxRetries = 3; // 增加最大重试次数
 		this.retryTimer = null;
 		this.proxyUrl = null; // Worker URL，将在初始化时设置
 		this.proxyEnabled = true; // 代理开关状态
 		this.hlsInstance = null; // 添加 HLS 实例引用
 		this.isInitialPlay = true; // 添加标记，用于区分初始播放和用户暂停
+		this.isDestroying = false; // 添加销毁标志
 		this.initTheme();
 		this.initEventListeners();
 	}
@@ -97,6 +98,10 @@ class Player {
 	 * @param {boolean} isRetry - 是否是重试请求
 	 */
 	initPlayer(url, isRetry = false) {
+		if (this.isDestroying) {
+			return;
+		}
+
 		this.isInitialPlay = true;
 		this.currentUrl = url;
 
@@ -109,6 +114,10 @@ class Player {
 		}
 
 		this.destroyPlayer();
+
+		if (this.isDestroying) {
+			return;
+		}
 
 		const container = document.getElementById("dplayer");
 		container.innerHTML = "";
@@ -129,12 +138,15 @@ class Player {
 				hls: {
 					enableWorker: true,
 					lowLatencyMode: true,
-					manifestLoadingMaxRetry: 2,
-					levelLoadingMaxRetry: 2,
-					fragLoadingMaxRetry: 2,
+					manifestLoadingMaxRetry: 3,
+					levelLoadingMaxRetry: 3,
+					fragLoadingMaxRetry: 3,
 					// 设置较小的直播缓冲区，以减少延迟
 					liveSyncDurationCount: 3,
 					liveMaxLatencyDurationCount: 5,
+					// 添加更多 HLS 配置
+					enableStashBuffer: false, // 禁用缓存以减少延迟
+					autoStartLoad: true,
 				},
 			},
 		});
@@ -145,33 +157,39 @@ class Player {
 		}
 
 		// 监听事件
-		this.player.on("error", () => {
-			this.handlePlayError("播放错误，正在尝试恢复...");
+		this.player.on("error", (e) => {
+			if (!this.isDestroying) {
+				this.handlePlayError("播放错误，正在尝试恢复...");
+			}
 		});
 
 		this.player.on("loadstart", () => {
-			if (this.isInitialPlay) {
+			if (this.isInitialPlay && !this.isDestroying) {
 				this.player.play();
 			}
 		});
 
 		this.player.on("playing", () => {
-			this.isInitialPlay = false;
-			this.retryCount = 0;
-			if (this.retryTimer) {
-				clearTimeout(this.retryTimer);
-				this.retryTimer = null;
+			if (!this.isDestroying) {
+				this.isInitialPlay = false;
+				this.retryCount = 0;
+				if (this.retryTimer) {
+					clearTimeout(this.retryTimer);
+					this.retryTimer = null;
+				}
+				notification.success("直播正在播放中");
 			}
-			notification.success("直播正在播放中");
 		});
 
 		this.player.on("ended", () => {
-			this.handlePlayError("直播流已结束");
+			if (!this.isDestroying) {
+				this.handlePlayError("直播流已结束");
+			}
 		});
 
 		// 修改暂停事件处理
 		this.player.on("pause", () => {
-			if (!this.isInitialPlay) {
+			if (!this.isInitialPlay && !this.isDestroying) {
 				// 暂停时只停止加载新的分片，保持当前画面
 				if (this.hlsInstance) {
 					this.hlsInstance.stopLoad();
@@ -182,7 +200,7 @@ class Player {
 
 		// 修改播放事件处理
 		this.player.on("play", () => {
-			if (!this.isInitialPlay) {
+			if (!this.isInitialPlay && !this.isDestroying) {
 				this.resumeLatestStream();
 			}
 		});
@@ -213,16 +231,27 @@ class Player {
 	 * 销毁播放器实例
 	 */
 	destroyPlayer() {
+		this.isDestroying = true;
 		this.isInitialPlay = true;
+
+		if (this.retryTimer) {
+			clearTimeout(this.retryTimer);
+			this.retryTimer = null;
+		}
+
 		if (this.hlsInstance) {
 			this.hlsInstance.stopLoad();
 			this.hlsInstance.destroy();
 			this.hlsInstance = null;
 		}
+
 		if (this.player) {
+			this.player.pause();
 			this.player.destroy();
 			this.player = null;
 		}
+
+		this.isDestroying = false;
 	}
 
 	/**
@@ -230,15 +259,21 @@ class Player {
 	 * @param {string} errorMessage - 错误信息
 	 */
 	handlePlayError(errorMessage = "播放出错") {
+		if (this.isDestroying) {
+			return;
+		}
+
 		if (this.retryCount < this.maxRetries) {
 			this.retryCount++;
-			const delay = Math.min(2000 * this.retryCount, 10000);
+			const delay = Math.min(1000 * this.retryCount, 5000);
 
 			notification.warning(`${errorMessage}，${delay / 1000}秒后进行第${this.retryCount}次重试...`);
 
 			this.retryTimer = setTimeout(() => {
-				notification.info(`正在进行第${this.retryCount}次重试...`);
-				this.initPlayer(this.currentUrl, true);
+				if (!this.isDestroying) {
+					notification.info(`正在进行第${this.retryCount}次重试...`);
+					this.initPlayer(this.currentUrl, true);
+				}
 			}, delay);
 		} else {
 			notification.error(`${errorMessage}\n已达到最大重试次数(${this.maxRetries})。请检查：\n` + "1. 网络连接是否正常\n" + "2. 直播源是否有效\n" + "3. 是否存在跨域限制");
