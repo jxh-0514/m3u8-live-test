@@ -658,3 +658,246 @@ input:checked + .slider:before {
 		max-height: calc(100vh - 120px);
 	}
 }
+
+.channel-group {
+	margin-bottom: 10px;
+}
+
+.group-title {
+	padding: 5px 10px;
+	background-color: rgba(0, 0, 0, 0.1);
+	font-weight: bold;
+	border-radius: 4px;
+	margin-bottom: 5px;
+}
+
+.dark-mode .group-title {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.group-channels {
+	margin-left: 10px;
+}
+
+/* 搜索框样式 */
+.search-input {
+	width: 100%;
+	margin-top: 10px;
+	padding: 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background-color: #fff;
+}
+
+.dark-mode .search-input {
+	background-color: #333;
+	border-color: #444;
+	color: #fff;
+}
+
+/* 频道组样式 */
+.channel-group {
+	margin-bottom: 15px;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.group-header {
+	cursor: pointer;
+	user-select: none;
+	padding: 8px 12px;
+	background-color: rgba(0, 0, 0, 0.05);
+	transition: background-color 0.2s;
+}
+
+.dark-mode .group-header {
+	background-color: rgba(255, 255, 255, 0.05);
+}
+
+.group-header:hover {
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .group-header:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.group-title {
+	display: flex;
+	align-items: center;
+	font-weight: bold;
+}
+
+.group-toggle {
+	margin-right: 8px;
+	font-size: 12px;
+	width: 16px;
+	text-align: center;
+}
+
+.channel-count {
+	margin-left: 8px;
+	font-size: 12px;
+	color: #666;
+}
+
+.dark-mode .channel-count {
+	color: #999;
+}
+
+.group-channels {
+	padding: 5px 0;
+}
+
+/* 频道项样式 */
+.channel-item {
+	padding: 8px 12px 8px 36px;
+	cursor: pointer;
+	transition: background-color 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.channel-item:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .channel-item:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+}
+
+.channel-item.active {
+	background-color: rgba(242, 116, 65, 0.1);
+}
+
+.channel-info {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.status {
+	font-size: 12px;
+	padding: 2px 6px;
+	border-radius: 3px;
+}
+
+.available .status {
+	background-color: rgba(40, 167, 69, 0.1);
+	color: #28a745;
+}
+
+.unavailable .status {
+	background-color: rgba(220, 53, 69, 0.1);
+	color: #dc3545;
+}
+
+/* 下拉框组样式 */
+.url-select-group {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 10px;
+	position: relative;
+}
+
+.source-select {
+	flex: 1;
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background-color: #fff;
+	color: #333;
+	cursor: pointer;
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+	padding-right: 24px;
+}
+
+.dark-mode .source-select {
+	background-color: #333;
+	border-color: #444;
+	color: #fff;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+}
+
+.source-select:focus {
+	outline: none;
+	border-color: #f27441;
+}
+
+.url-input {
+	flex: 2;
+}
+
+.add-btn {
+	padding: 8px 12px;
+	background-color: #28a745;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.add-btn:hover {
+	background-color: #218838;
+}
+
+.add-btn:disabled {
+	background-color: #6c757d;
+	cursor: not-allowed;
+}
+
+/* 右键菜单样式 */
+.source-context-menu {
+	position: fixed;
+	display: none;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+	z-index: 1000;
+}
+
+.dark-mode .source-context-menu {
+	background: #333;
+	border-color: #444;
+}
+
+.menu-item {
+	padding: 8px 12px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.menu-item:hover {
+	background-color: #f5f5f5;
+}
+
+.dark-mode .menu-item:hover {
+	background-color: #444;
+}
+
+/* 分隔线 */
+.menu-item + .menu-item {
+	border-top: 1px solid #eee;
+}
+
+.dark-mode .menu-item + .menu-item {
+	border-top-color: #444;
+}
+
+.loading-indicator {
+	padding: 20px;
+	text-align: center;
+	color: #666;
+}
+
+.dark-mode .loading-indicator {
+	color: #999;
+}

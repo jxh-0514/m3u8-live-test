@@ -13,6 +13,8 @@ class Player {
 		this.retryTimer = null;
 		this.proxyUrl = null; // Worker URL，将在初始化时设置
 		this.proxyEnabled = true; // 代理开关状态
+		this.hlsInstance = null; // 添加 HLS 实例引用
+		this.isInitialPlay = true; // 添加标记，用于区分初始播放和用户暂停
 		this.initTheme();
 		this.initEventListeners();
 	}
@@ -95,10 +97,9 @@ class Player {
 	 * @param {boolean} isRetry - 是否是重试请求
 	 */
 	initPlayer(url, isRetry = false) {
-		// 保存当前播放地址
+		this.isInitialPlay = true;
 		this.currentUrl = url;
 
-		// 如果是新的播放请求（非重试），重置重试计数
 		if (!isRetry) {
 			this.retryCount = 0;
 			if (this.retryTimer) {
@@ -107,17 +108,11 @@ class Player {
 			}
 		}
 
-		// 销毁现有播放器实例
-		if (this.player) {
-			this.player.destroy();
-			this.player = null;
-		}
+		this.destroyPlayer();
 
 		const container = document.getElementById("dplayer");
-		// 确保容器是空的
 		container.innerHTML = "";
 
-		// 获取代理后的URL
 		const proxiedUrl = this.getProxiedUrl(url);
 
 		// 创建新的播放器实例
@@ -132,25 +127,36 @@ class Player {
 			},
 			pluginOptions: {
 				hls: {
-					// 启用 Web Worker
 					enableWorker: true,
-					// 启用低延迟模式
 					lowLatencyMode: true,
-					// 配置重试参数
 					manifestLoadingMaxRetry: 2,
 					levelLoadingMaxRetry: 2,
 					fragLoadingMaxRetry: 2,
+					// 设置较小的直播缓冲区，以减少延迟
+					liveSyncDurationCount: 3,
+					liveMaxLatencyDurationCount: 5,
 				},
 			},
 		});
 
-		// 监听错误事件
+		// 保存 HLS 实例的引用
+		if (this.player && this.player.plugins && this.player.plugins.hls) {
+			this.hlsInstance = this.player.plugins.hls;
+		}
+
+		// 监听事件
 		this.player.on("error", () => {
 			this.handlePlayError("播放错误，正在尝试恢复...");
 		});
 
-		// 监听播放开始事件
+		this.player.on("loadstart", () => {
+			if (this.isInitialPlay) {
+				this.player.play();
+			}
+		});
+
 		this.player.on("playing", () => {
+			this.isInitialPlay = false;
 			this.retryCount = 0;
 			if (this.retryTimer) {
 				clearTimeout(this.retryTimer);
@@ -159,10 +165,64 @@ class Player {
 			notification.success("直播正在播放中");
 		});
 
-		// 监听播放结束事件
 		this.player.on("ended", () => {
 			this.handlePlayError("直播流已结束");
 		});
+
+		// 修改暂停事件处理
+		this.player.on("pause", () => {
+			if (!this.isInitialPlay) {
+				// 暂停时只停止加载新的分片，保持当前画面
+				if (this.hlsInstance) {
+					this.hlsInstance.stopLoad();
+				}
+				notification.info("已暂停直播");
+			}
+		});
+
+		// 修改播放事件处理
+		this.player.on("play", () => {
+			if (!this.isInitialPlay) {
+				this.resumeLatestStream();
+			}
+		});
+	}
+
+	/**
+	 * 停止流的加载但保持当前画面
+	 */
+	stopStream() {
+		if (this.hlsInstance) {
+			// 只停止加载新的分片，不分离媒体元素
+			this.hlsInstance.stopLoad();
+		}
+	}
+
+	/**
+	 * 恢复流并获取最新画面
+	 */
+	resumeLatestStream() {
+		if (this.hlsInstance) {
+			// 重新初始化播放器以获取最新画面
+			this.initPlayer(this.currentUrl, true);
+			notification.info("正在获取最新画面...");
+		}
+	}
+
+	/**
+	 * 销毁播放器实例
+	 */
+	destroyPlayer() {
+		this.isInitialPlay = true;
+		if (this.hlsInstance) {
+			this.hlsInstance.stopLoad();
+			this.hlsInstance.destroy();
+			this.hlsInstance = null;
+		}
+		if (this.player) {
+			this.player.destroy();
+			this.player = null;
+		}
 	}
 
 	/**
@@ -172,7 +232,7 @@ class Player {
 	handlePlayError(errorMessage = "播放出错") {
 		if (this.retryCount < this.maxRetries) {
 			this.retryCount++;
-			const delay = Math.min(2000 * this.retryCount, 10000); // 递增重试延迟，最大10秒
+			const delay = Math.min(2000 * this.retryCount, 10000);
 
 			notification.warning(`${errorMessage}，${delay / 1000}秒后进行第${this.retryCount}次重试...`);
 
@@ -200,41 +260,77 @@ class Player {
 	}
 
 	/**
-	 * 加载并显示频道列表
+	 * 解析M3U格式的频道列表
+	 * @param {string} content - M3U文件内容
+	 * @returns {Array<{name: string, url: string, group: string}>} 解析后的频道列表
+	 */
+	parseM3U(content) {
+		const channels = [];
+		const lines = content.split("\n").map((line) => line.trim());
+
+		let currentChannel = null;
+
+		for (let line of lines) {
+			if (line.startsWith("#EXTM3U")) {
+				continue;
+			}
+
+			if (line.startsWith("#EXTINF:")) {
+				// 解析频道信息
+				currentChannel = {};
+
+				// 解析group-title
+				const groupMatch = line.match(/group-title="([^"]+)"/);
+				if (groupMatch) {
+					currentChannel.group = groupMatch[1];
+				}
+
+				// 解析频道名称（在最后一个逗号后面的内容）
+				const nameMatch = line.match(/,([^,]+)$/);
+				if (nameMatch) {
+					currentChannel.name = nameMatch[1].trim();
+				}
+			} else if (line && currentChannel && !line.startsWith("#")) {
+				// 这是频道URL
+				currentChannel.url = line;
+				channels.push(currentChannel);
+				currentChannel = null;
+			}
+		}
+
+		return channels;
+	}
+
+	/**
+	 * 加载频道列表
 	 * @param {string} url - 频道列表地址
-	 * @returns {Promise<Array<{name: string, url: string}>>} 频道列表
+	 * @returns {Promise<Array>} 频道列表
 	 */
 	async loadChannels(url) {
-		const channelList = document.getElementById("channelList");
-		channelList.innerHTML = '<div class="channel-item">加载中...</div>';
-
 		try {
-			const channels = await Utils.loadChannelList(url);
-			channelList.innerHTML = "";
+			const response = await fetch(this.getProxiedUrl(url));
+			if (!response.ok) {
+				throw new Error("加载频道列表失败");
+			}
+			const content = await response.text();
 
-			channels.forEach((channel) => {
-				const channelDiv = document.createElement("div");
-				channelDiv.className = "channel-item";
-				channelDiv.textContent = channel.name;
-				channelDiv.onclick = () => {
-					// 移除其他频道的active类
-					document.querySelectorAll(".channel-item").forEach((item) => {
-						item.classList.remove("active");
+			// 检查是否是M3U格式
+			if (content.trim().startsWith("#EXTM3U")) {
+				return this.parseM3U(content);
+			} else {
+				// 保留原有的解析逻辑，假设是简单的文本格式
+				return content
+					.split("\n")
+					.map((line) => line.trim())
+					.filter((line) => line && !line.startsWith("#"))
+					.map((line) => {
+						const [name, url] = line.split(",").map((s) => s.trim());
+						return { name: name || url, url };
 					});
-					// 添加active类到当前频道
-					channelDiv.classList.add("active");
-					// 播放当前频道
-					this.play(channel.url);
-				};
-				channelList.appendChild(channelDiv);
-			});
-
-			notification.success(`成功加载 ${channels.length} 个频道`);
-			return channels; // 返回频道列表
+			}
 		} catch (error) {
-			channelList.innerHTML = '<div class="channel-item">加载失败</div>';
-			notification.error("加载频道列表失败，请检查地址是否正确");
-			throw error; // 抛出错误以便调用者处理
+			notification.error("加载频道列表失败");
+			throw error;
 		}
 	}
 }

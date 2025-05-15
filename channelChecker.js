@@ -4,241 +4,113 @@
  */
 class ChannelChecker {
 	constructor() {
-		this.hls = null;
-		this.video = null;
-		this.checkTimeout = 10000; // 检测超时时间（毫秒）
-		this.maxConcurrent = 5; // 最大并行检测数
-		this.lastCheckedIndex = -1; // 上次检测的索引位置
-		this.isChecking = false; // 是否正在检测
-		this.currentBatch = []; // 当前正在检测的批次
-	}
-
-	/**
-	 * 检测m3u8链接是否可用
-	 * @param {string} url - m3u8链接地址
-	 * @returns {Promise<boolean>} 链接是否可用
-	 */
-	async checkChannel(url) {
-		return new Promise((resolve) => {
-			// 创建video元素
-			this.video = document.createElement("video");
-			this.video.style.display = "none";
-			document.body.appendChild(this.video);
-
-			// 创建HLS实例
-			if (this.hls) {
-				this.hls.destroy();
-			}
-			this.hls = new Hls({
-				debug: false,
-				manifestLoadingTimeOut: 5000,
-				manifestLoadingMaxRetry: 1,
-				levelLoadingTimeOut: 5000,
-				levelLoadingMaxRetry: 1,
-			});
-
-			// 设置超时定时器
-			const timeoutId = setTimeout(() => {
-				this.cleanup();
-				resolve(false);
-			}, this.checkTimeout);
-
-			// 绑定HLS事件
-			this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-				clearTimeout(timeoutId);
-				this.cleanup();
-				resolve(true);
-			});
-
-			this.hls.on(Hls.Events.ERROR, (event, data) => {
-				if (data.fatal) {
-					clearTimeout(timeoutId);
-					this.cleanup();
-					resolve(false);
-				}
-			});
-
-			// 加载m3u8
-			this.hls.loadSource(url);
-			this.hls.attachMedia(this.video);
-		});
-	}
-
-	/**
-	 * 清理资源
-	 */
-	cleanup() {
-		if (this.hls) {
-			this.hls.destroy();
-			this.hls = null;
-		}
-		if (this.video) {
-			this.video.remove();
-			this.video = null;
-		}
-	}
-
-	/**
-	 * 中断当前检测
-	 */
-	stopChecking() {
 		this.isChecking = false;
-		// 清理当前批次的检测
-		this.currentBatch.forEach((controller) => {
-			if (controller && controller.abort) {
-				controller.abort();
-			}
-		});
-		this.currentBatch = [];
-		this.cleanup();
+		this.lastCheckedIndex = -1;
+		this.activeChecks = new Map(); // 存储活跃的检测任务
+		this.concurrentLimit = 5; // 并发检测数量
 	}
 
 	/**
-	 * 检测单个频道（带中断控制）
+	 * 检测单个频道
 	 * @param {Object} channel - 频道信息
-	 * @param {AbortController} controller - 中断控制器
-	 * @returns {Promise<boolean>} 检测结果
+	 * @returns {Promise} 检测结果
 	 */
-	async checkChannelWithAbort(channel, controller) {
-		try {
-			// 如果已经中断，直接返回
-			if (!this.isChecking) {
-				return false;
-			}
+	async checkChannel(channel) {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
-			const signal = controller.signal;
-			// 创建一个可以被中断的Promise
-			const timeoutPromise = new Promise((resolve) => {
-				setTimeout(() => resolve(false), this.checkTimeout);
+		try {
+			const response = await fetch(channel.url, {
+				method: "HEAD",
+				signal: controller.signal,
 			});
 
-			const checkPromise = this.checkChannel(channel.url);
-
-			// 使用 Promise.race 实现可中断的检测
-			const result = await Promise.race([
-				checkPromise,
-				timeoutPromise,
-				new Promise((_, reject) => {
-					signal.addEventListener("abort", () => reject(new Error("检测被中断")));
-				}),
-			]);
-
-			return result;
+			clearTimeout(timeoutId);
+			return {
+				...channel,
+				isAvailable: response.ok,
+			};
 		} catch (error) {
-			if (error.message === "检测被中断") {
-				throw error;
-			}
-			return false;
+			clearTimeout(timeoutId);
+			return {
+				...channel,
+				isAvailable: false,
+			};
 		}
 	}
 
 	/**
 	 * 批量检测频道
-	 * @param {Array<{name: string, url: string}>} channels - 频道列表
-	 * @param {Function} onProgress - 进度回调函数
-	 * @param {Function} onChannelChecked - 单个频道检测完成回调
-	 * @param {number} startIndex - 开始检测的索引位置
-	 * @returns {Promise<Array<{name: string, url: string, isAvailable: boolean}>>}
+	 * @param {Array} channels - 频道列表
+	 * @param {Function} onProgress - 进度回调
+	 * @param {Function} onResult - 结果回调
+	 * @param {number} startIndex - 开始检测的索引
 	 */
-	async checkChannels(channels, onProgress, onChannelChecked, startIndex = 0) {
-		const results = new Array(channels.length);
-		let checkedCount = 0;
-		this.lastCheckedIndex = startIndex - 1;
-		this.isChecking = true;
-		this.currentBatch = [];
-
-		// 初始化结果数组
-		for (let i = 0; i < startIndex; i++) {
-			if (channels[i].isAvailable !== undefined) {
-				results[i] = { ...channels[i] };
-				checkedCount++;
-			}
+	async checkChannels(channels, onProgress, onResult, startIndex = 0) {
+		if (this.isChecking) {
+			throw new Error("检测已在进行中");
 		}
 
-		const checkChannel = async (index) => {
-			if (index >= channels.length || !this.isChecking) return;
-
-			const channel = channels[index];
-			const controller = new AbortController();
-			this.currentBatch.push(controller);
-
-			try {
-				const isAvailable = await this.checkChannelWithAbort(channel, controller);
-				if (this.isChecking) {
-					// 只在未中断时更新结果
-					results[index] = {
-						...channel,
-						isAvailable,
-					};
-					checkedCount++;
-					this.lastCheckedIndex = index;
-
-					if (onProgress) {
-						onProgress(checkedCount, channels.length);
-					}
-					if (onChannelChecked) {
-						onChannelChecked(results[index], index);
-					}
-				}
-			} catch (error) {
-				if (error.message === "检测被中断") {
-					throw error;
-				}
-				if (this.isChecking) {
-					// 只在未中断时更新结果
-					results[index] = {
-						...channel,
-						isAvailable: false,
-					};
-					checkedCount++;
-					this.lastCheckedIndex = index;
-				}
-			} finally {
-				const idx = this.currentBatch.indexOf(controller);
-				if (idx !== -1) {
-					this.currentBatch.splice(idx, 1);
-				}
-			}
-		};
+		this.isChecking = true;
+		this.activeChecks.clear();
 
 		try {
-			// 并行检测
-			const runBatch = async (startIdx) => {
-				if (!this.isChecking) return;
+			let index = startIndex;
+			const total = channels.length;
 
-				const batch = [];
-				for (let i = 0; i < this.maxConcurrent && startIdx + i < channels.length; i++) {
-					batch.push(checkChannel(startIdx + i));
-				}
+			// 创建检测队列
+			const queue = new Array(this.concurrentLimit).fill(null).map(async () => {
+				while (this.isChecking && index < total) {
+					const currentIndex = index++;
+					const channel = channels[currentIndex];
 
-				try {
-					await Promise.all(batch);
-					if (this.isChecking && startIdx + this.maxConcurrent < channels.length) {
-						await runBatch(startIdx + this.maxConcurrent);
+					// 创建新的检测任务
+					const checkTask = this.checkChannel(channel);
+					this.activeChecks.set(currentIndex, checkTask);
+
+					try {
+						const result = await checkTask;
+						if (this.isChecking) {
+							// 确保检测未被中断
+							this.lastCheckedIndex = currentIndex;
+							onResult(result, currentIndex);
+							onProgress(currentIndex + 1, total);
+						}
+					} catch (error) {
+						console.error(`检测频道失败: ${channel.name}`, error);
+					} finally {
+						this.activeChecks.delete(currentIndex);
 					}
-				} catch (error) {
-					if (error.message === "检测被中断") {
-						throw error;
-					}
 				}
-			};
+			});
 
-			await runBatch(startIndex);
-		} catch (error) {
-			if (error.message === "检测被中断") {
-				console.log("检测已被中断");
+			// 等待所有检测队列完成
+			await Promise.all(queue);
+
+			if (!this.isChecking) {
+				throw new Error("检测被中断");
 			}
-			throw error;
 		} finally {
-			this.cleanup();
+			this.isChecking = false;
 		}
-
-		return results;
 	}
 
 	/**
-	 * 获取上次检测的位置
-	 * @returns {number} 上次检测的索引位置
+	 * 停止检测
+	 */
+	stopChecking() {
+		this.isChecking = false;
+		// 取消所有活跃的检测任务
+		this.activeChecks.forEach((checkPromise) => {
+			if (checkPromise && checkPromise.cancel) {
+				checkPromise.cancel();
+			}
+		});
+		this.activeChecks.clear();
+	}
+
+	/**
+	 * 获取最后检测的索引
 	 */
 	getLastCheckedIndex() {
 		return this.lastCheckedIndex;
