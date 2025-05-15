@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV 播放器</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dplayer@1.27.1/dist/DPlayer.min.js"></script>
+</head>
+
+<body class="dark-mode">
+    <div class="container">
+        <div class="sidebar">
+            <div class="channel-header">
+                <h2>频道列表</h2>
+                <button id="toggleTheme" class="theme-toggle">切换主题</button>
+            </div>
+            <div class="channel-input">
+                <input type="text" id="channelUrl" class="url-input" placeholder="输入频道列表地址 (m3u8)"
+                    value="https://raw.githubusercontent.com/ngo5/IPTV/main/m3u/Heilongjiangipv4chinamobilePLTV.txt">
+                <button id="loadChannels" class="load-btn">加载频道</button>
+            </div>
+            <div class="channel-actions">
+                <button id="checkChannels" class="check-btn" disabled>检测频道</button>
+                <span id="checkProgress" class="check-progress"></span>
+            </div>
+            <div class="channel-list" id="channelList">
+                <!-- 频道列表将通过JavaScript动态加载 -->
+            </div>
+        </div>
+        <div class="main-content">
+            <div id="playerContainer" class="player-container">
+                <div id="dplayer"></div>
+            </div>
+            <div class="player-header">
+                <input type="text" id="streamUrl" class="url-input" placeholder="输入直播流地址 (m3u8)">
+                <button id="playStream" class="play-btn">播放</button>
+            </div>
+            <div id="notification" class="notification hidden">
+                <!-- 通知内容将通过JavaScript动态更新 -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { player } from './player.js';
+        import { channelChecker } from './channelChecker.js';
+        import Utils from './utils.js';
+        import { notification } from './notification.js';
+
+        let currentChannels = [];
+        let isChecking = false;
+        const checkButton = document.getElementById('checkChannels');
+        const progressSpan = document.getElementById('checkProgress');
+
+        /**
+         * 加载频道列表
+         * @param {string} url - 频道列表地址
+         */
+        async function loadChannelList(url) {
+            if (!url) return;
+
+            try {
+                currentChannels = await player.loadChannels(url);
+                checkButton.disabled = false;
+                progressSpan.textContent = '';
+                updateChannelList(currentChannels);
+            } catch (error) {
+                currentChannels = [];
+                checkButton.disabled = true;
+                progressSpan.textContent = '';
+            }
+        }
+
+        /**
+         * 更新频道列表显示
+         * @param {Array<{name: string, url: string, isAvailable?: boolean}>} channels - 频道列表
+         */
+        function updateChannelList(channels) {
+            const channelList = document.getElementById('channelList');
+            channelList.innerHTML = '';
+
+            channels.forEach((channel, index) => {
+                const channelDiv = document.createElement('div');
+                let className = 'channel-item';
+                let status = '';
+
+                if (channel.isAvailable === true) {
+                    className += ' available';
+                    status = '✓ 可用';
+                } else if (channel.isAvailable === false) {
+                    className += ' unavailable';
+                    status = '✗ 不可用';
+                }
+
+                channelDiv.className = className;
+                channelDiv.innerHTML = `
+                    <span class="name">${channel.name}</span>
+                    ${status ? `<span class="status">${status}</span>` : ''}
+                `;
+
+                if (channel.isAvailable !== false) {
+                    channelDiv.onclick = () => {
+                        document.querySelectorAll('.channel-item').forEach((item) => {
+                            item.classList.remove('active');
+                        });
+                        channelDiv.classList.add('active');
+                        player.play(channel.url);
+                    };
+                }
+
+                channelList.appendChild(channelDiv);
+            });
+        }
+
+        // 绑定加载频道列表事件
+        document.getElementById('loadChannels').addEventListener('click', () => {
+            const url = document.getElementById('channelUrl').value;
+            loadChannelList(url);
+        });
+
+        // 绑定检测频道事件
+        checkButton.addEventListener('click', async () => {
+            if (isChecking) {
+                // 中断检测
+                isChecking = false;
+                checkButton.textContent = '检测频道';
+                checkButton.classList.remove('checking');
+                notification.warning('已中断频道检测');
+                return;
+            }
+
+            if (currentChannels.length === 0) {
+                notification.warning('请先加载频道列表');
+                return;
+            }
+
+            isChecking = true;
+            checkButton.textContent = '中断检测';
+            checkButton.classList.add('checking');
+            notification.info('开始检测频道可用性...');
+
+            try {
+                let checkedCount = 0;
+                const results = [];
+
+                for (const channel of currentChannels) {
+                    if (!isChecking) break;
+
+                    const channelDiv = document.querySelector(`.channel-item:nth-child(${results.length + 1})`);
+                    channelDiv.classList.add('checking');
+
+                    try {
+                        const isAvailable = await channelChecker.checkChannel(channel.url);
+                        results.push({
+                            ...channel,
+                            isAvailable
+                        });
+                    } catch {
+                        results.push({
+                            ...channel,
+                            isAvailable: false
+                        });
+                    }
+
+                    checkedCount++;
+                    progressSpan.textContent = Utils.formatProgress(checkedCount, currentChannels.length);
+
+                    // 更新已检测的频道显示
+                    updateChannelList([...results, ...currentChannels.slice(results.length)]);
+                }
+
+                if (isChecking) {
+                    notification.success(Utils.formatResults(results));
+                }
+            } catch (error) {
+                notification.error('检测过程中发生错误');
+                console.error('检测错误:', error);
+            } finally {
+                isChecking = false;
+                checkButton.textContent = '检测频道';
+                checkButton.classList.remove('checking');
+                progressSpan.textContent = '';
+            }
+        });
+
+        // 绑定播放流事件
+        document.getElementById('playStream').addEventListener('click', () => {
+            const url = document.getElementById('streamUrl').value;
+            if (url) {
+                player.play(url);
+            }
+        });
+
+        // 页面加载完成后自动加载频道列表
+        window.addEventListener('DOMContentLoaded', () => {
+            const defaultUrl = document.getElementById('channelUrl').value;
+            loadChannelList(defaultUrl);
+        });
+    </script>
+</body>
+
+</html>
