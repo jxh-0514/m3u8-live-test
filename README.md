@@ -1,4 +1,28 @@
-# 个人测试示例
+# 个人测试示例 - 本项目由ai生成
+
+├── .gitignore                # Git 忽略文件配置
+├── LICENSE                   # 项目许可证
+├── README.md                 # 项目说明文档
+├── index.html                # 主页面入口，包含播放器和频道列表的 HTML 结构
+├── package.json              # 项目依赖与脚本配置
+├── src/
+│   ├── js/
+│   │   ├── _worker.js        # 代理/转发相关的 Worker 脚本
+│   │   ├── app.js            # 应用主入口，负责初始化 UI 和业务逻辑
+│   │   ├── channelChecker.js # 频道可用性检测逻辑
+│   │   ├── notification.js   # 全局通知与消息提示封装
+│   │   ├── player.js         # 播放器核心功能模块，频道切换、错误处理等
+│   │   ├── sourceManager.js  # 频道源管理（导入/导出/切换源）
+│   │   ├── uiManager.js      # UI 渲染与交互逻辑
+│   │   ├── utils.js          # 工具函数与本地存储封装
+│   └── styles/
+│       ├── base.css          # 基础样式
+│       ├── channel-item.css  # 频道列表样式
+│       ├── controls.css      # 播放器控制栏样式
+│       ├── main.css          # 主体布局样式
+│       ├── player.css        # 播放器区域样式
+│       ├── responsive.css    # 响应式布局样式
+│       └── sidebar.css       # 侧边栏样式
 
 # IPTV 在线播放器
 

@@ -142,11 +142,25 @@ export class UIManager {
 				});
 				channelDiv.classList.add("active");
 				this.streamUrlInput.value = channel.url;
-				// 自动触发播放按钮点击
-				this.playStreamBtn.click();
+
 				// 触发自定义事件
-				const event = new CustomEvent("channelSelect", { detail: channel });
+				const event = new CustomEvent("channelSelect", { 
+					detail: channel,
+					bubbles: true, // 确保事件可以冒泡
+					cancelable: true // 允许事件被取消
+				});
+				
+				// 先触发事件，让应用程序有机会处理频道切换的准备工作
 				document.dispatchEvent(event);
+
+				// 使用 requestAnimationFrame 延迟播放操作
+				// 这样可以确保 DOM 更新和事件处理都已完成
+				requestAnimationFrame(() => {
+					// 检查频道是否仍然是激活状态（用户可能已经点击了另一个频道）
+					if (channelDiv.classList.contains("active")) {
+						this.playStreamBtn.click();
+					}
+				});
 			};
 		}
 
