@@ -11,21 +11,41 @@ class Player {
 		this.retryCount = 0;
 		this.maxRetries = 2; // 增加最大重试次数
 		this.retryTimer = null;
-		this.proxyUrl = null; // Worker URL，将在初始化时设置
+		this.proxyUrls = []; // 代理URL列表，将在初始化时设置
+		this.currentProxyIndex = 0; // 当前使用的代理索引
 		this.proxyEnabled = false; // 代理开关状态
 		this.hlsInstance = null; // 添加 HLS 实例引用
 		this.isInitialPlay = true; // 添加标记，用于区分初始播放和用户暂停
 		this.isDestroying = false; // 添加销毁标志
-		this.initTheme();
 		this.initEventListeners();
 	}
 
 	/**
-	 * 设置代理URL
-	 * @param {string} url - Worker URL
+	 * 设置代理URL列表
+	 * @param {Array} urls - 代理URL数组
 	 */
-	setProxyUrl(url) {
-		this.proxyUrl = url;
+	setProxyUrls(urls) {
+		this.proxyUrls = urls || [];
+		this.currentProxyIndex = 0;
+	}
+
+	/**
+	 * 获取当前代理URL
+	 * @returns {string} 当前代理URL
+	 */
+	getCurrentProxyUrl() {
+		if (this.proxyUrls.length === 0) return null;
+		return this.proxyUrls[this.currentProxyIndex];
+	}
+
+	/**
+	 * 切换到下一个代理
+	 * @returns {boolean} 是否还有可用代理
+	 */
+	switchToNextProxy() {
+		if (this.proxyUrls.length === 0) return false;
+		this.currentProxyIndex = (this.currentProxyIndex + 1) % this.proxyUrls.length;
+		return this.currentProxyIndex !== 0; // 如果回到第一个，说明已经尝试了所有代理
 	}
 
 	/**
@@ -40,18 +60,28 @@ class Player {
 			return "";
 		}
 
+		const currentProxyUrl = this.getCurrentProxyUrl();
+
 		// 记录代理状态
 		console.log("[getProxiedUrl] 代理状态:", {
-			proxyUrl: this.proxyUrl,
+			currentProxyUrl,
 			proxyEnabled: this.proxyEnabled,
-			inputUrl: url
+			inputUrl: url,
+			proxyIndex: this.currentProxyIndex,
 		});
 
-		if (!this.proxyUrl || !this.proxyEnabled) {
+		if (!currentProxyUrl || !this.proxyEnabled) {
 			return url; // 如果没有设置代理或代理被禁用，直接返回原始URL
 		}
 
-		const proxiedUrl = `${this.proxyUrl}?url=${encodeURIComponent(url)}`;
+		// 根据不同的代理服务构造URL
+		let proxiedUrl;
+		if (currentProxyUrl.includes("allorigins.win")) {
+			proxiedUrl = `${currentProxyUrl}${encodeURIComponent(url)}`;
+		} else {
+			proxiedUrl = `${currentProxyUrl}?url=${encodeURIComponent(url)}`;
+		}
+
 		console.log("[getProxiedUrl] 生成的代理 URL:", proxiedUrl);
 		return proxiedUrl;
 	}
@@ -67,19 +97,6 @@ class Player {
 			this.play(this.currentUrl);
 		}
 		notification.info(enabled ? "已启用代理" : "已禁用代理");
-	}
-
-	/**
-	 * 初始化主题
-	 */
-	initTheme() {
-		const isDarkMode = Utils.storage.get("darkMode", true);
-		document.body.classList.toggle("dark-mode", isDarkMode);
-
-		document.getElementById("toggleTheme").addEventListener("click", () => {
-			document.body.classList.toggle("dark-mode");
-			Utils.storage.save("darkMode", document.body.classList.contains("dark-mode"));
-		});
 	}
 
 	/**
@@ -130,7 +147,7 @@ class Player {
 			try {
 				// 停止当前加载
 				this.hlsInstance.stopLoad();
-				
+
 				// 重新开始加载，这会从最新的 segment 开始
 				setTimeout(() => {
 					// 重新检查实例是否存在
@@ -142,12 +159,12 @@ class Player {
 
 					// 重新开始加载
 					this.hlsInstance.startLoad();
-					
+
 					// 开始播放
 					if (this.player.video) {
 						const playPromise = this.player.video.play();
 						if (playPromise !== undefined) {
-							playPromise.catch(err => {
+							playPromise.catch((err) => {
 								console.error("[resumeLatestStream] 播放失败:", err);
 								// 如果简单的恢复失败，则重新初始化播放器
 								this.initPlayer(this.currentUrl, true);
@@ -193,7 +210,7 @@ class Player {
 			url,
 			isRetry,
 			isDestroying: this.isDestroying,
-			currentUrl: this.currentUrl
+			currentUrl: this.currentUrl,
 		});
 
 		this.isInitialPlay = true;
@@ -223,7 +240,7 @@ class Player {
 
 		console.log("[initPlayer] 创建播放器实例:", {
 			originalUrl: url,
-			proxiedUrl: proxiedUrl
+			proxiedUrl: proxiedUrl,
 		});
 
 		// 创建新的播放器实例
@@ -279,7 +296,7 @@ class Player {
 				proxiedUrl: currentProxiedUrl,
 				isDestroying: this.isDestroying,
 				proxyEnabled: this.proxyEnabled,
-				proxyUrl: this.proxyUrl
+				proxyUrl: this.proxyUrl,
 			});
 
 			if (!this.isDestroying) {
@@ -388,8 +405,31 @@ class Player {
 			clearTimeout(this.retryTimer);
 			this.retryTimer = null;
 		}
+
 		const maxRetries = options.maxRetries || this.maxRetries;
 		const retryDelay = options.retryDelay || 5000;
+
+		// 如果启用了代理且有多个代理可用，先尝试切换代理
+		if (this.proxyEnabled && this.proxyUrls.length > 1 && this.retryCount < maxRetries) {
+			const hasNextProxy = this.switchToNextProxy();
+			if (hasNextProxy || this.retryCount === 0) {
+				this.retryCount++;
+				const currentProxyUrl = this.getCurrentProxyUrl();
+				notification.info(`切换到代理 ${this.currentProxyIndex + 1}/${this.proxyUrls.length}，正在重试...`);
+
+				const retryUrl = this.currentUrl;
+				this.retryTimer = setTimeout(() => {
+					if (!this.isDestroying && this.currentUrl === retryUrl) {
+						this.destroyPlayer().then(() => {
+							this.initPlayer(retryUrl, true, options);
+						});
+					}
+				}, 1000);
+				return;
+			}
+		}
+
+		// 常规重试逻辑
 		if (this.retryCount < maxRetries) {
 			this.retryCount++;
 			const delay = Math.min(1000 * this.retryCount, retryDelay);
@@ -404,10 +444,9 @@ class Player {
 				}
 			}, delay);
 		} else {
-			notification.error(`${errorMessage}\n已达到最大重试次数(${maxRetries})。请检查：\n` + 
-				"1. 网络连接是否正常\n" + 
-				"2. 直播源是否有效\n" + 
-				"3. 是否存在跨域限制");
+			// 重置代理索引，为下次播放做准备
+			this.currentProxyIndex = 0;
+			notification.error(`${errorMessage}\n已达到最大重试次数(${maxRetries})。请检查：\n` + "1. 网络连接是否正常\n" + "2. 直播源是否有效\n" + "3. 是否存在跨域限制\n" + "4. 尝试切换其他频道源");
 		}
 	}
 

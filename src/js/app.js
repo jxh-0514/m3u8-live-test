@@ -4,9 +4,10 @@ import Utils from "./utils.js";
 import { notification } from "./notification.js";
 import { SourceManager } from "./sourceManager.js";
 import { UIManager } from "./uiManager.js";
+import { ChannelModal } from "./channelModal.js";
 
-// 设置 Worker URL（部署后需要更新为实际的 Worker URL）
-const WORKER_URL = "https://m3u8-proxy.1942499981.workers.dev";
+// 设置多个代理 Worker URL，提高成功率
+const PROXY_WORKERS = ["https://m3u8-proxy.1942499981.workers.dev", "https://cors-anywhere.herokuapp.com", "https://api.allorigins.win/raw?url="];
 
 class App {
 	constructor() {
@@ -14,29 +15,33 @@ class App {
 		this.isChecking = false;
 		this.ui = new UIManager();
 		this.sourceManager = new SourceManager();
+		this.channelModal = new ChannelModal();
 
-		player.setProxyUrl(WORKER_URL);
+		// 设置代理URL列表
+		player.setProxyUrls(PROXY_WORKERS);
+
+		// 设置全局模态框引用，供其他模块使用
+		window.channelModal = this.channelModal;
+
 		this.initializeEventListeners();
 
 		// 页面加载完成后自动加载频道列表
 		document.addEventListener("DOMContentLoaded", () => {
-			const defaultUrl = this.ui.channelUrlInput.value;
-			if (defaultUrl) {
-				this.loadChannelList(defaultUrl);
-			}
+			// 等待SourceManager初始化完成后加载默认频道源
+			setTimeout(() => {
+				this.loadDefaultSource();
+			}, 100);
 		});
 	}
 
 	initializeEventListeners() {
-		// 加载频道按钮事件
-		this.ui.loadChannelsBtn.addEventListener("click", () => {
-			const url = this.ui.channelUrlInput.value;
-			if (!url) {
-				notification.warning("请选择或输入频道列表地址");
-				return;
-			}
-			this.loadChannelList(url);
-		});
+		// 添加频道源按钮
+		const addSourceBtn = document.getElementById("addSourceBtn");
+		if (addSourceBtn) {
+			addSourceBtn.addEventListener("click", () => {
+				this.channelModal.showAddSource();
+			});
+		}
 
 		// 检测按钮事件
 		this.ui.checkButton.addEventListener("click", () => {
@@ -85,12 +90,124 @@ class App {
 				this.loadChannelList(url);
 			}
 		});
+
+		// 监听频道源添加事件
+		document.addEventListener("addChannelSource", (e) => {
+			// 事件已在 SourceManager 中处理
+		});
+
+		// 监听频道源编辑事件
+		document.addEventListener("editChannelSource", (e) => {
+			// 事件已在 SourceManager 中处理
+		});
+
+		// 侧边栏收缩功能
+		this.initSidebarToggle();
+
+		// 移动端侧边栏控制
+		this.initMobileSidebar();
+
+		// 主题切换功能
+		this.initThemeToggle();
+	}
+
+	// 初始化侧边栏收缩功能
+	initSidebarToggle() {
+		const sidebarToggle = document.getElementById("sidebarToggle");
+		const sidebar = document.getElementById("sidebar");
+
+		if (sidebarToggle && sidebar) {
+			// 恢复保存的状态
+			const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+			if (isCollapsed) {
+				sidebar.classList.add("collapsed");
+			}
+
+			sidebarToggle.addEventListener("click", () => {
+				sidebar.classList.toggle("collapsed");
+				localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed"));
+			});
+		}
+	}
+
+	// 初始化移动端侧边栏控制
+	initMobileSidebar() {
+		const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+		const mobileOverlay = document.getElementById("mobileOverlay");
+		const sidebar = document.getElementById("sidebar");
+
+		if (mobileMenuBtn && mobileOverlay && sidebar) {
+			// 打开侧边栏
+			mobileMenuBtn.addEventListener("click", () => {
+				sidebar.classList.add("mobile-show");
+				mobileOverlay.classList.add("show");
+			});
+
+			// 点击遮罩关闭侧边栏
+			mobileOverlay.addEventListener("click", () => {
+				sidebar.classList.remove("mobile-show");
+				mobileOverlay.classList.remove("show");
+			});
+
+			// ESC键关闭侧边栏
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "Escape" && sidebar.classList.contains("mobile-show")) {
+					sidebar.classList.remove("mobile-show");
+					mobileOverlay.classList.remove("show");
+				}
+			});
+		}
+	}
+
+	// 初始化主题切换功能
+	initThemeToggle() {
+		// 恢复保存的主题状态
+		const isDarkMode = localStorage.getItem("darkMode") === "true";
+		document.body.classList.toggle("dark-mode", isDarkMode);
+
+		const themeToggle = document.getElementById("toggleTheme");
+
+		if (themeToggle) {
+			themeToggle.addEventListener("click", () => {
+				document.body.classList.toggle("dark-mode");
+				localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+			});
+		}
+	}
+
+	// 加载默认频道源
+	loadDefaultSource() {
+		const sources = this.sourceManager.sources;
+		const sourceNames = Object.keys(sources);
+
+		if (sourceNames.length > 0) {
+			// 选择第一个频道源
+			const firstSourceName = sourceNames[0];
+			this.sourceManager.selectSource(firstSourceName);
+		} else {
+			// 如果没有频道源，尝试加载默认URL
+			const defaultUrl = this.ui.channelUrlInput.value;
+			if (defaultUrl) {
+				this.loadChannelList(defaultUrl);
+			}
+		}
 	}
 
 	async loadChannelList(url) {
 		try {
+			// 如果正在检测，先停止检测
+			if (this.isChecking) {
+				this.stopChannelCheck();
+			}
+
 			notification.info("正在加载频道列表...");
 			this.ui.checkButton.disabled = true;
+
+			// 重置UI状态
+			this.ui.updateButtonState("idle");
+			this.ui.resetStats();
+			this.ui.progressSpan.textContent = "";
+
 			const channels = await player.loadChannels(url);
 			this.currentChannels = channels;
 			this.ui.updateChannelList(channels);

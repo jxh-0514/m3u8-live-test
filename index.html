@@ -13,40 +13,64 @@
 
 <body class="dark-mode">
     <div class="container">
-        <div class="sidebar">
+        <!-- 移动端遮罩层 -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+        <div class="sidebar" id="sidebar">
             <div class="channel-header">
                 <h2>频道列表</h2>
-                <button id="toggleTheme" class="theme-toggle" title="切换主题">
-                    <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                    <svg class="theme-icon moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                </button>
-            </div>
-            <div class="channel-input">
-                <select id="channelSource" class="source-select">
-                    <option value="https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u">国际频道
-                    </option>
-                    <!-- 可以添加更多预设频道源 -->
-                </select>
-                <div class="url-select-group">
-                    <input type="text" id="channelUrl" class="input" placeholder="输入频道列表地址 (m3u8)"
-                        value="https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u">
-                    <button id="addSource" class="add-btn" title="添加到下拉列表">+</button>
+                <div class="header-actions">
+                    <button id="sidebarToggle" class="sidebar-toggle" title="收缩侧边栏">
+                        <svg class="toggle-icon collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15,18 9,12 15,6"></polyline>
+                        </svg>
+                        <svg class="toggle-icon expand" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9,18 15,12 9,6"></polyline>
+                        </svg>
+                    </button>
+                    <button id="toggleTheme" class="theme-toggle" title="切换主题">
+                        <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="theme-icon moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
                 </div>
-                <button id="loadChannels" class="btn btn-primary">加载频道</button>
+            </div>
+            <!-- 频道源管理面板 -->
+            <div class="source-management">
+                <div class="management-header">
+                    <h3>频道源管理</h3>
+                    <div class="management-actions">
+                        <button id="addSourceBtn" class="btn btn-success btn-sm" title="添加频道源">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            源
+                        </button>
+
+                    </div>
+                </div>
+                <div class="source-list" id="sourceList">
+                    <!-- 频道源列表将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <div class="channel-input">
                 <input type="text" id="channelSearch" class="search-input" placeholder="搜索频道...">
             </div>
             <div class="channel-actions">
@@ -78,18 +102,61 @@
                 <div id="dplayer"></div>
             </div>
             <div class="player-header">
+                <button id="mobileMenuBtn" class="mobile-menu-btn" title="打开菜单">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <input type="text" id="streamUrl" class="input" placeholder="输入直播流地址 (m3u8)">
-                <button id="playStream" class="btn btn-primary">播放</button>
-                <div class="proxy-toggle">
-                    <label class="switch">
-                        <input type="checkbox" id="proxyToggle" checked>
-                        <span class="slider round"></span>
-                    </label>
-                    <span class="proxy-label">启用代理</span>
+                <div class="player-controls">
+                    <button id="playStream" class="btn btn-primary">播放</button>
+                    <div class="proxy-toggle">
+                        <label class="switch">
+                            <input type="checkbox" id="proxyToggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="proxy-label">启用代理</span>
+                    </div>
                 </div>
             </div>
             <div id="notification" class="notification hidden">
                 <!-- 通知内容将通过JavaScript动态更新 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加频道模态对话框 -->
+    <div id="addChannelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加频道</h3>
+                <button class="modal-close" id="closeModal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addChannelForm">
+                    <div class="form-group">
+                        <label for="channelName">频道名称</label>
+                        <input type="text" id="channelName" class="form-input" placeholder="请输入频道名称" required>
+                        <div class="error-message" id="nameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="channelAddress">频道地址</label>
+                        <input type="url" id="channelAddress" class="form-input" placeholder="请输入M3U8直播流地址" required>
+                        <div class="error-message" id="addressError"></div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelAdd">取消</button>
+                <button type="submit" class="btn btn-primary" id="confirmAdd" form="addChannelForm">添加频道</button>
             </div>
         </div>
     </div>

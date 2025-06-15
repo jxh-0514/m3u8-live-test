@@ -7,7 +7,6 @@ export class UIManager {
 		this.progressSpan = document.getElementById("checkProgress");
 		this.availableCountSpan = document.getElementById("availableCount");
 		this.unavailableCountSpan = document.getElementById("unavailableCount");
-		this.loadChannelsBtn = document.getElementById("loadChannels");
 		this.channelUrlInput = document.getElementById("channelUrl");
 		this.playStreamBtn = document.getElementById("playStream");
 		this.streamUrlInput = document.getElementById("streamUrl");
@@ -117,6 +116,11 @@ export class UIManager {
 		let className = "channel-item";
 		let status = "";
 
+		// 检测频道类型
+		const channelType = this.detectChannelType(channel.url, channel.name);
+		const typeLabel = this.getChannelTypeLabel(channelType);
+		const showType = channelType !== "live"; // 不显示live类型
+
 		if (channel.isAvailable === true) {
 			className += " available";
 			status = "✓ 可用";
@@ -131,7 +135,10 @@ export class UIManager {
 		channelDiv.innerHTML = `
             <div class="channel-info">
                 <span class="name">${channel.name}</span>
-                ${status ? `<span class="status">${status}</span>` : ""}
+                <div class="channel-meta">
+                    ${showType ? `<span class="channel-type ${channelType}">${typeLabel}</span>` : ""}
+                    ${status ? `<span class="status">${status}</span>` : ""}
+                </div>
             </div>
         `;
 
@@ -144,12 +151,12 @@ export class UIManager {
 				this.streamUrlInput.value = channel.url;
 
 				// 触发自定义事件
-				const event = new CustomEvent("channelSelect", { 
+				const event = new CustomEvent("channelSelect", {
 					detail: channel,
 					bubbles: true, // 确保事件可以冒泡
-					cancelable: true // 允许事件被取消
+					cancelable: true, // 允许事件被取消
 				});
-				
+
 				// 先触发事件，让应用程序有机会处理频道切换的准备工作
 				document.dispatchEvent(event);
 
@@ -165,5 +172,70 @@ export class UIManager {
 		}
 
 		return channelDiv;
+	}
+
+	// 检测频道类型
+	detectChannelType(url, name) {
+		if (!url) return "unknown";
+
+		const urlLower = url.toLowerCase();
+		const nameLower = name.toLowerCase();
+
+		// 检测直播流特征
+		const liveIndicators = [".m3u8", "/live/", "live.", "stream", "rtmp://", "rtsp://", "udp://", "rtp://", "hls", "dash"];
+
+		// 检测点播特征
+		const vodIndicators = [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", "/vod/", "/movie/", "/video/", "movie", "film", "episode"];
+
+		// 检测名称中的直播关键词
+		const liveNameKeywords = ["live", "直播", "tv", "电视", "news", "新闻", "sport", "体育", "cctv", "卫视", "频道"];
+
+		// 检测名称中的点播关键词
+		const vodNameKeywords = ["movie", "电影", "drama", "电视剧", "series", "episode", "集", "season", "季"];
+
+		// 优先检查URL
+		for (const indicator of liveIndicators) {
+			if (urlLower.includes(indicator)) {
+				return "live";
+			}
+		}
+
+		for (const indicator of vodIndicators) {
+			if (urlLower.includes(indicator)) {
+				return "vod";
+			}
+		}
+
+		// 检查名称
+		for (const keyword of liveNameKeywords) {
+			if (nameLower.includes(keyword)) {
+				return "live";
+			}
+		}
+
+		for (const keyword of vodNameKeywords) {
+			if (nameLower.includes(keyword)) {
+				return "vod";
+			}
+		}
+
+		// 默认判断：如果是m3u8格式，倾向于认为是直播
+		if (urlLower.includes(".m3u8")) {
+			return "live";
+		}
+
+		return "unknown";
+	}
+
+	// 获取频道类型标签
+	getChannelTypeLabel(type) {
+		switch (type) {
+			case "live":
+				return "LIVE";
+			case "vod":
+				return "VOD";
+			default:
+				return "未知";
+		}
 	}
 }

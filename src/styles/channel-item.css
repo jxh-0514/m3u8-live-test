@@ -1,36 +1,40 @@
 /* 频道项样式 */
 .channel-item {
-	padding: 12px 16px;
-	margin: 4px 0;
-	border-radius: 6px;
-	background-color: var(--primary-bg);
+	padding: 16px 20px;
+	margin: 6px 4px;
+	border-radius: 10px;
+	background: var(--bg-color);
 	border: 1px solid var(--border-color);
 	cursor: pointer;
-	transition: all 0.3s ease;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	position: relative;
 	overflow: hidden;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .channel-item:hover {
-	background-color: var(--hover-color);
-	transform: translateX(4px);
+	background: var(--hover-bg);
+	transform: scale(1.02);
+	box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.15);
+	border-color: var(--primary-color);
 }
 
 .channel-item.active {
-	background-color: rgba(74, 158, 255, 0.1);
-	border-color: #4a9eff;
+	background: var(--bg-color);
+	border-color: var(--primary-color);
+	border-width: 2px;
+	color: var(--text-color);
+	box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
 	position: relative;
 }
 
-.channel-item.active::before {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: 0;
-	bottom: 0;
-	width: 4px;
-	background-color: #4a9eff;
-	border-radius: 4px 0 0 4px;
+.channel-item.active .name {
+	color: var(--primary-color);
+	font-weight: 600;
+}
+
+.channel-item.active .status {
+	color: var(--text-color);
 }
 
 .channel-item.active::after {
@@ -48,16 +52,26 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	gap: 8px;
-	padding-right: 20px;
+	gap: 12px;
+	padding-right: 8px;
 }
 
 .channel-item .name {
 	flex: 1;
-	font-size: 0.95rem;
+	font-size: 1rem;
+	font-weight: 500;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	margin-bottom: 2px;
+	color: var(--text-color);
+}
+
+.channel-meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
 }
 
 .channel-item .status {
@@ -65,6 +79,45 @@
 	padding: 2px 6px;
 	border-radius: 4px;
 	background-color: var(--secondary-bg);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+/* 频道类型标识 */
+.channel-type {
+	font-size: 0.75rem;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.channel-type.live {
+	background: #ff4757;
+	color: white;
+	animation: pulse 2s infinite;
+}
+
+.channel-type.vod {
+	background: #3742fa;
+	color: white;
+}
+
+.channel-type.unknown {
+	background: var(--border-color);
+	color: var(--text-secondary);
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
 }
 
 .channel-item.available .status {
@@ -84,24 +137,182 @@
 /* 频道组样式 */
 .channel-group {
 	margin: 16px 0;
+	background: transparent;
+	border-radius: 0;
+	overflow: visible;
 }
 
 .channel-group-header {
-	padding: 8px 16px;
-	font-weight: 500;
+	padding: 12px 16px;
+	font-weight: 600;
 	color: var(--text-color);
 	opacity: 0.8;
-	font-size: 0.9rem;
+	font-size: 0.95rem;
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	background: transparent;
+	border-bottom: 1px solid var(--border-color);
+	margin-bottom: 8px;
+}
+
+.channel-group-header:hover {
+	opacity: 1;
+	background: var(--hover-bg);
+	transform: translateX(4px);
+	color: var(--primary-color);
+}
+
+.channel-group-header::before {
+	content: "📺";
+	font-size: 1rem;
+	opacity: 0.7;
+	transition: all 0.3s ease;
+}
+
+.channel-group-header:hover::before {
+	opacity: 1;
+	transform: scale(1.1);
 }
 
 .channel-group-header::after {
 	content: "";
 	flex: 1;
-	height: 1px;
-	background-color: var(--border-color);
+	height: 2px;
+	background: var(--border-color);
+	border-radius: 1px;
+	transition: all 0.3s ease;
+}
+
+.channel-group-header:hover::after {
+	background: var(--primary-color);
+	height: 3px;
+}
+
+/* 频道分组折叠状态 */
+.channel-group.collapsed .channel-group-header::before {
+	content: "📁";
+}
+
+.channel-group.collapsed .channel-item {
+	display: none;
+}
+
+.channel-group-header .group-count {
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-size: 0.8rem;
+	font-weight: 500;
+	margin-left: auto;
+	transition: all 0.3s ease;
+}
+
+.channel-group-header:hover .group-count {
+	background: var(--primary-color);
+	color: white;
+	transform: scale(1.05);
+}
+
+/* 响应式设计 */
+/* 平板设备 */
+@media (max-width: 1024px) {
+	.channel-item {
+		padding: 14px 18px;
+		margin: 5px 3px;
+	}
+
+	.channel-item .name {
+		font-size: 0.95rem;
+	}
+}
+
+/* 小平板和大手机 */
+@media (max-width: 768px) {
+	.channel-group {
+		margin: 12px 0;
+	}
+
+	.channel-group-header {
+		padding: 12px 14px;
+		font-size: 0.9rem;
+		min-height: 44px; /* 触摸友好的最小高度 */
+	}
+
+	.channel-item {
+		padding: 14px 16px;
+		margin: 4px 2px;
+		border-radius: 8px;
+		min-height: 48px; /* 触摸友好的最小高度 */
+	}
+
+	.channel-item .name {
+		font-size: 0.9rem;
+	}
+
+	.channel-meta {
+		gap: 6px;
+	}
+
+	.channel-type {
+		font-size: 0.7rem;
+		padding: 2px 6px;
+		min-width: 32px; /* 确保触摸区域足够大 */
+		text-align: center;
+	}
+}
+
+/* 手机设备 */
+@media (max-width: 480px) {
+	.channel-group {
+		margin: 8px 0;
+	}
+
+	.channel-group-header {
+		padding: 10px 12px;
+		font-size: 0.85rem;
+		gap: 6px;
+		min-height: 44px; /* 触摸友好的最小高度 */
+	}
+
+	.channel-item {
+		padding: 12px 14px;
+		margin: 3px 1px;
+		border-radius: 6px;
+		min-height: 48px; /* 触摸友好的最小高度 */
+	}
+
+	.channel-item .channel-info {
+		gap: 8px;
+		padding-right: 4px;
+	}
+
+	.channel-item .name {
+		font-size: 0.85rem;
+		line-height: 1.3; /* 改善可读性 */
+	}
+
+	.channel-meta {
+		gap: 4px;
+	}
+
+	.channel-type {
+		font-size: 0.65rem;
+		padding: 2px 4px;
+		min-width: 28px; /* 确保触摸区域足够大 */
+		text-align: center;
+	}
+
+	.channel-item .status {
+		font-size: 0.75rem;
+		padding: 2px 6px;
+		min-width: 32px; /* 确保触摸区域足够大 */
+		text-align: center;
+	}
 }
 
 /* 动画效果 */

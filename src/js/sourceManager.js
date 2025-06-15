@@ -8,8 +8,9 @@ export class SourceManager {
 			IPTV频道: "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/IPTV.m3u",
 		};
 		this.sources = this.loadSources();
+		this.currentSource = null;
 		this.initializeUI();
-		this.addContextMenu();
+		this.initializeEventListeners();
 	}
 
 	loadSources() {
@@ -21,54 +22,104 @@ export class SourceManager {
 		return { ...this.defaultSources };
 	}
 
-	updateSourceSelect() {
-		const select = document.getElementById("channelSource");
-		const urlInput = document.getElementById("channelUrl");
-
-		select.innerHTML = "";
-		Object.entries(this.sources).forEach(([name, url]) => {
-			const option = document.createElement("option");
-			option.value = url;
-			option.textContent = name;
-			select.appendChild(option);
-		});
-
-		if (select.options.length > 0) {
-			urlInput.value = select.value;
+	initializeUI() {
+		this.updateSourceList();
+		// 设置默认选中第一个频道源
+		const firstSource = Object.keys(this.sources)[0];
+		if (firstSource) {
+			this.selectSource(firstSource);
 		}
 	}
 
-	initializeUI() {
-		const select = document.getElementById("channelSource");
-		const urlInput = document.getElementById("channelUrl");
-		const addButton = document.getElementById("addSource");
-		const loadButton = document.getElementById("loadChannels");
-
-		this.updateSourceSelect();
-
-		select.addEventListener("change", () => {
-			urlInput.value = select.value;
-			// 自动触发加载按钮点击
-			loadButton.click();
-			// 触发自定义事件
-			const event = new CustomEvent("sourceChange", {
-				detail: { url: select.value, name: select.options[select.selectedIndex].text },
-			});
-			document.dispatchEvent(event);
+	initializeEventListeners() {
+		// 监听频道源相关事件
+		document.addEventListener("addChannelSource", (e) => {
+			this.addSource(e.detail.name, e.detail.url);
 		});
 
-		addButton.addEventListener("click", () => {
-			const url = urlInput.value.trim();
-			if (!url) {
-				notification.warning("请输入频道列表地址");
-				return;
-			}
-
-			const name = prompt("请输入频道源名称：");
-			if (name) {
-				this.addSource(name.trim(), url);
-			}
+		document.addEventListener("editChannelSource", (e) => {
+			this.editSource(e.detail.originalName, e.detail.name, e.detail.url);
 		});
+	}
+
+	updateSourceList() {
+		const sourceList = document.getElementById("sourceList");
+		if (!sourceList) return;
+
+		sourceList.innerHTML = "";
+
+		Object.entries(this.sources).forEach(([name, url]) => {
+			const sourceItem = this.createSourceItem(name, url);
+			sourceList.appendChild(sourceItem);
+		});
+	}
+
+	createSourceItem(name, url) {
+		const item = document.createElement("div");
+		item.className = "source-item";
+		item.dataset.name = name;
+
+		item.innerHTML = `
+			<div class="source-info">
+				<div class="source-name">${name}</div>
+				<div class="source-url">${url}</div>
+			</div>
+			<div class="source-actions">
+				<button class="action-btn edit" data-action="edit" title="编辑">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+						<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+					</svg>
+				</button>
+				<button class="action-btn delete" data-action="delete" title="删除">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<polyline points="3,6 5,6 21,6"></polyline>
+						<path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+					</svg>
+				</button>
+			</div>
+		`;
+
+		// 点击选中频道源
+		item.querySelector(".source-info").addEventListener("click", () => {
+			this.selectSource(name);
+		});
+
+		// 编辑按钮
+		item.querySelector('[data-action="edit"]').addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.editSourceModal(name, url);
+		});
+
+		// 删除按钮
+		item.querySelector('[data-action="delete"]').addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.confirmDeleteSource(name);
+		});
+
+		return item;
+	}
+
+	selectSource(name) {
+		// 更新UI选中状态
+		document.querySelectorAll(".source-item").forEach((item) => {
+			item.classList.remove("active");
+		});
+
+		const selectedItem = document.querySelector(`[data-name="${name}"]`);
+		if (selectedItem) {
+			selectedItem.classList.add("active");
+		}
+
+		// 更新当前源
+		this.currentSource = name;
+		const url = this.sources[name];
+
+		// 触发源变更事件，自动加载频道
+		const event = new CustomEvent("sourceChange", {
+			detail: { url, name },
+		});
+		document.dispatchEvent(event);
 	}
 
 	addSource(name, url) {
@@ -79,9 +130,44 @@ export class SourceManager {
 		}
 		this.sources[name] = url;
 		this.saveSources();
-		this.updateSourceSelect();
-		notification.success("添加成功");
+		this.updateSourceList();
+		this.selectSource(name);
 		return true;
+	}
+
+	editSource(originalName, newName, newUrl) {
+		if (!originalName || !newName || !newUrl) return false;
+
+		// 如果名称改变了，检查新名称是否已存在
+		if (originalName !== newName && this.sources[newName]) {
+			notification.warning("该名称已存在");
+			return false;
+		}
+
+		// 删除旧的源
+		delete this.sources[originalName];
+
+		// 添加新的源
+		this.sources[newName] = newUrl;
+
+		this.saveSources();
+		this.updateSourceList();
+		this.selectSource(newName);
+		return true;
+	}
+
+	editSourceModal(name, url) {
+		// 获取模态框实例并显示编辑模式
+		const modal = window.channelModal;
+		if (modal) {
+			modal.showEditSource({ name, url });
+		}
+	}
+
+	confirmDeleteSource(name) {
+		if (confirm(`确定要删除频道源 "${name}" 吗？`)) {
+			this.removeSource(name);
+		}
 	}
 
 	saveSources() {
@@ -92,124 +178,19 @@ export class SourceManager {
 		if (name && this.sources[name]) {
 			delete this.sources[name];
 			this.saveSources();
-			this.updateSourceSelect();
+			this.updateSourceList();
+
+			// 如果删除的是当前选中的源，选择第一个可用的源
+			if (this.currentSource === name) {
+				const firstSource = Object.keys(this.sources)[0];
+				if (firstSource) {
+					this.selectSource(firstSource);
+				}
+			}
+
+			notification.success(`频道源 "${name}" 已删除`);
 			return true;
 		}
 		return false;
-	}
-
-	addContextMenu() {
-		const select = document.getElementById("channelSource");
-		const menu = document.createElement("div");
-		menu.className = "source-context-menu";
-		menu.innerHTML = `
-            <div class="menu-item" data-action="delete">删除此频道源</div>
-            <div class="menu-item" data-action="export">导出所有频道源</div>
-            <div class="menu-item" data-action="import">导入频道源</div>
-            <div class="menu-item" data-action="moveup">上移</div>
-            <div class="menu-item" data-action="movedown">下移</div>
-        `;
-		document.body.appendChild(menu);
-
-		select.addEventListener("contextmenu", (e) => {
-			e.preventDefault();
-			menu.style.display = "block";
-			menu.style.left = e.clientX + "px";
-			menu.style.top = e.clientY + "px";
-		});
-
-		document.addEventListener("click", () => {
-			menu.style.display = "none";
-		});
-
-		menu.addEventListener("click", (e) => {
-			const action = e.target.dataset.action;
-			const selectedIndex = select.selectedIndex;
-			const selectedName = select.options[selectedIndex].text;
-
-			switch (action) {
-				case "delete":
-					if (confirm(`是否删除"${selectedName}"？`)) {
-						this.removeSource(selectedName);
-					}
-					break;
-				case "export":
-					this.exportSources();
-					break;
-				case "import":
-					this.importSources();
-					break;
-				case "moveup":
-					if (selectedIndex > 0) {
-						this.moveSource(selectedIndex, selectedIndex - 1);
-					}
-					break;
-				case "movedown":
-					if (selectedIndex < select.options.length - 1) {
-						this.moveSource(selectedIndex, selectedIndex + 1);
-					}
-					break;
-			}
-		});
-	}
-
-	exportSources() {
-		const data = JSON.stringify(this.sources, null, 2);
-		const blob = new Blob([data], { type: "application/json" });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = "channel_sources.json";
-		a.click();
-		URL.revokeObjectURL(url);
-	}
-
-	importSources() {
-		const input = document.createElement("input");
-		input.type = "file";
-		input.accept = ".json";
-
-		input.onchange = (e) => {
-			const file = e.target.files[0];
-			if (file) {
-				const reader = new FileReader();
-				reader.onload = (e) => {
-					try {
-						const imported = JSON.parse(e.target.result);
-						if (typeof imported === "object") {
-							this.sources = { ...this.sources, ...imported };
-							this.saveSources();
-							this.updateSourceSelect();
-							notification.success("导入成功");
-						}
-					} catch (err) {
-						notification.error("导入失败：无效的文件格式");
-					}
-				};
-				reader.readAsText(file);
-			}
-		};
-		input.click();
-	}
-
-	moveSource(fromIndex, toIndex) {
-		const select = document.getElementById("channelSource");
-		const options = Array.from(select.options);
-		const movedOption = options[fromIndex];
-
-		const newSources = {};
-		options.forEach((opt, index) => {
-			if (index === toIndex) {
-				newSources[movedOption.text] = this.sources[movedOption.text];
-			}
-			if (index !== fromIndex) {
-				newSources[opt.text] = this.sources[opt.text];
-			}
-		});
-
-		this.sources = newSources;
-		this.saveSources();
-		this.updateSourceSelect();
-		select.selectedIndex = toIndex;
 	}
 }
