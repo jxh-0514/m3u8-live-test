@@ -1,90 +1,8 @@
-@media (max-width: 768px) {
-	.container {
-		flex-direction: column;
-	}
+/* 响应式布局补充规则 */
+/* 注意：主要的响应式样式已移至各组件文件中，这里只保留特殊布局规则 */
 
-	.sidebar {
-		width: 100%;
-		height: 50vh;
-	}
-
-	.main-content {
-		height: 50vh;
-	}
-}
-
-@media (max-width: 480px) {
-	.player-header {
-		flex-direction: column;
-	}
-
-	.channel-header {
-		flex-direction: column;
-		gap: 0.5rem;
-		text-align: center;
-	}
-
-	.theme-toggle {
-		width: 100%;
-	}
-}
-
-@media screen and (max-width: 1024px) {
-	.sidebar {
-		width: 300px;
-	}
-
-	.channel-header h2 {
-		font-size: 1rem;
-	}
-
-	.url-input {
-		font-size: 0.9rem;
-	}
-}
-
-@media screen and (max-width: 767px) {
-	.container {
-		flex-direction: column;
-	}
-
-	.sidebar {
-		width: 100%;
-		height: 40vh;
-		min-height: 300px;
-	}
-
-	.main-content {
-		height: 60vh;
-	}
-
-	.player-header {
-		flex-wrap: wrap;
-	}
-}
-
-@media screen and (max-width: 575px) {
-	.channel-header {
-		flex-direction: column;
-		gap: 0.5rem;
-		align-items: stretch;
-	}
-
-	.theme-toggle {
-		width: 100%;
-	}
-
-	.player-header {
-		gap: 0.5rem;
-	}
-
-	.load-btn,
-	.play-btn {
-		width: 100%;
-	}
-}
-
-@media screen and (orientation: landscape) and (max-height: 600px) {
+/* 横屏模式优化 (适用于平板横屏) */
+@media screen and (orientation: landscape) and (max-height: 600px) and (min-width: 768px) {
 	.container {
 		flex-direction: row;
 	}
@@ -92,10 +10,74 @@
 	.sidebar {
 		width: 40%;
 		height: 100vh;
+		position: relative;
+		left: 0;
 	}
 
 	.main-content {
 		width: 60%;
 		height: 100vh;
+	}
+
+	/* 横屏时优化播放器控制 */
+	.player-header {
+		flex-direction: row;
+		align-items: center;
+		padding: var(--spacing-md);
+	}
+
+	.mobile-menu-btn {
+		display: none;
+	}
+}
+
+/* 超小屏设备特殊处理 (320px以下) */
+@media screen and (max-width: 320px) {
+	.sidebar {
+		width: 100%;
+	}
+
+	.channel-header {
+		padding: var(--spacing-sm);
+	}
+
+	.channel-header h2 {
+		font-size: var(--font-size-sm);
+	}
+
+	.player-header {
+		padding: var(--spacing-sm);
+	}
+
+	.btn {
+		font-size: var(--font-size-xs);
+		padding: var(--spacing-sm) var(--spacing-md);
+	}
+}
+
+/* 大屏设备优化 (1200px+) */
+@media screen and (min-width: 1200px) {
+	.sidebar {
+		width: 420px;
+	}
+
+	.channel-header {
+		padding: var(--spacing-xl) var(--spacing-2xl);
+	}
+
+	.channel-input {
+		padding: var(--spacing-xl) var(--spacing-2xl);
+	}
+
+	.channel-list {
+		padding: var(--spacing-lg) var(--spacing-xl);
+	}
+
+	.channel-actions {
+		padding: var(--spacing-xl) var(--spacing-2xl);
+	}
+
+	.player-header {
+		padding: var(--spacing-xl) var(--spacing-2xl);
 	}
 }

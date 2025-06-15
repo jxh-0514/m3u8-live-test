@@ -22,8 +22,10 @@
 /* 移动端菜单按钮 */
 .mobile-menu-btn {
 	display: none;
-	width: 44px;
-	height: 44px;
+	min-width: var(--touch-target-comfortable);
+	min-height: var(--touch-target-comfortable);
+	width: var(--touch-target-comfortable);
+	height: var(--touch-target-comfortable);
 	padding: 0;
 	border: 1px solid var(--border-color);
 	border-radius: 8px;
@@ -115,94 +117,124 @@
 	padding: 8px 16px;
 }
 
-/* 响应式设计 */
-/* 平板设备 */
-@media (max-width: 1024px) {
-	.player-header {
-		padding: 14px;
-		gap: 10px;
-	}
+/* 统一响应式设计 - 移动优先 */
+
+/* 基础移动端样式 (320px+) */
+.mobile-menu-btn {
+	display: flex;
 }
 
-/* 小平板和大手机 */
-@media (max-width: 768px) {
-	.mobile-menu-btn {
-		display: flex;
-	}
+.player-header {
+	padding: var(--spacing-md);
+	gap: var(--spacing-md);
+	flex-direction: column;
+	align-items: stretch;
+}
 
+.player-header .input {
+	width: 100%;
+	min-height: var(--touch-target-min);
+	font-size: var(--font-size-sm);
+	padding: var(--spacing-md);
+	border-radius: 8px;
+}
+
+.player-controls {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.player-controls .btn {
+	flex: 1;
+	min-height: var(--touch-target-min);
+	font-size: var(--font-size-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.proxy-toggle {
+	margin-left: auto;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.proxy-toggle .switch {
+	transform: scale(1.1);
+}
+
+.proxy-label {
+	font-size: var(--font-size-sm);
+}
+
+/* 小屏手机优化 (480px+) */
+@media (min-width: 480px) {
 	.player-header {
-		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
-		align-items: stretch;
+		padding: var(--spacing-lg);
+		gap: var(--spacing-lg);
 	}
 
 	.player-header .input {
-		width: 100%;
-		min-height: 44px; /* 触摸友好 */
-		font-size: 0.9rem;
-	}
-
-	.player-controls {
-		display: flex;
-		gap: 12px;
-		align-items: center;
+		font-size: var(--font-size-base);
+		padding: var(--spacing-lg);
 	}
 
 	.player-controls .btn {
+		font-size: var(--font-size-base);
+	}
+
+	.proxy-toggle .switch {
+		transform: scale(1.2);
+	}
+
+	.proxy-label {
+		font-size: var(--font-size-base);
+	}
+}
+
+/* 平板设备 (768px+) */
+@media (min-width: 768px) {
+	.mobile-menu-btn {
+		display: none;
+	}
+
+	.player-header {
+		flex-direction: row;
+		align-items: center;
+		padding: var(--spacing-lg);
+		gap: var(--spacing-md);
+	}
+
+	.player-header .input {
 		flex: 1;
-		min-height: 44px; /* 触摸友好 */
-		font-size: 0.9rem;
+		font-size: var(--font-size-md);
+	}
+
+	.player-controls {
+		flex-wrap: nowrap;
+		width: auto;
+	}
+
+	.player-controls .btn {
+		flex: none;
+		white-space: nowrap;
 	}
 
 	.proxy-toggle {
-		margin-left: auto;
-		flex-shrink: 0;
-	}
-
-	.proxy-toggle .switch {
-		transform: scale(1.2); /* 更大的开关 */
-	}
-
-	.proxy-label {
-		font-size: 0.9rem;
-		margin-left: 8px;
+		margin-left: 0;
 	}
 }
 
-/* 手机设备 */
-@media (max-width: 480px) {
-	.mobile-menu-btn {
-		display: flex;
-	}
-
+/* 大屏设备 (1024px+) */
+@media (min-width: 1024px) {
 	.player-header {
-		padding: 12px;
-		gap: 10px;
-	}
-
-	.player-header .input {
-		min-height: 44px;
-		font-size: 0.85rem;
-		padding: 12px 14px;
+		padding: var(--spacing-xl);
+		gap: var(--spacing-lg);
 	}
 
 	.player-controls {
-		gap: 10px;
-	}
-
-	.player-controls .btn {
-		min-height: 44px;
-		font-size: 0.85rem;
-		padding: 12px 16px;
-	}
-
-	.proxy-toggle .switch {
-		transform: scale(1.1);
-	}
-
-	.proxy-label {
-		font-size: 0.85rem;
-		margin-left: 6px;
+		gap: var(--spacing-lg);
 	}
 }

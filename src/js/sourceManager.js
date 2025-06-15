@@ -6,6 +6,10 @@ export class SourceManager {
 		this.defaultSources = {
 			国际频道: "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u",
 			IPTV频道: "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/IPTV.m3u",
+			外语电视: "https://raw.githubusercontent.com/sjnhnp/adblock/refs/heads/main/filtered_global_attributes_removed.m3u",
+			国语电视: "https://raw.githubusercontent.com/sjnhnp/adblock/refs/heads/main/filtered_https_only.m3u",
+			国语电视_品质不佳: "https://raw.githubusercontent.com/sjnhnp/adblock/refs/heads/main/filtered_http_only_valid.m3u",
+			iptv: "https://raw.githubusercontent.com/ldm168168/IPTV-2/refs/heads/main/JSIPTV.m3u",
 		};
 		this.sources = this.loadSources();
 		this.currentSource = null;

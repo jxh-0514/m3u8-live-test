@@ -1,0 +1,206 @@
+/* 响应式工具类和混合样式 */
+
+/* 触摸友好的按钮基础样式 */
+.touch-friendly {
+	min-height: var(--touch-target-min);
+	min-width: var(--touch-target-min);
+	padding: var(--spacing-md) var(--spacing-lg);
+	border-radius: 8px;
+	transition: all 0.3s ease;
+}
+
+.touch-friendly:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.touch-friendly:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 响应式间距工具类 */
+.spacing-xs { gap: var(--spacing-xs); }
+.spacing-sm { gap: var(--spacing-sm); }
+.spacing-md { gap: var(--spacing-md); }
+.spacing-lg { gap: var(--spacing-lg); }
+.spacing-xl { gap: var(--spacing-xl); }
+
+.padding-xs { padding: var(--spacing-xs); }
+.padding-sm { padding: var(--spacing-sm); }
+.padding-md { padding: var(--spacing-md); }
+.padding-lg { padding: var(--spacing-lg); }
+.padding-xl { padding: var(--spacing-xl); }
+
+/* 响应式字体大小 */
+.text-xs { font-size: var(--font-size-xs); }
+.text-sm { font-size: var(--font-size-sm); }
+.text-base { font-size: var(--font-size-base); }
+.text-md { font-size: var(--font-size-md); }
+.text-lg { font-size: var(--font-size-lg); }
+.text-xl { font-size: var(--font-size-xl); }
+
+/* 移动端隐藏/显示工具类 */
+.mobile-only {
+	display: block;
+}
+
+.desktop-only {
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.mobile-only {
+		display: none;
+	}
+	
+	.desktop-only {
+		display: block;
+	}
+}
+
+/* 响应式布局工具类 */
+.flex-mobile-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+	.flex-mobile-column {
+		flex-direction: row;
+		align-items: center;
+	}
+}
+
+/* 响应式容器 */
+.responsive-container {
+	width: 100%;
+	max-width: 100%;
+	padding: 0 var(--spacing-md);
+}
+
+@media (min-width: 480px) {
+	.responsive-container {
+		padding: 0 var(--spacing-lg);
+	}
+}
+
+@media (min-width: 768px) {
+	.responsive-container {
+		padding: 0 var(--spacing-xl);
+	}
+}
+
+@media (min-width: 1024px) {
+	.responsive-container {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 var(--spacing-2xl);
+	}
+}
+
+/* 响应式网格系统 */
+.grid-responsive {
+	display: grid;
+	gap: var(--spacing-md);
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+	.grid-responsive {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 768px) {
+	.grid-responsive {
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--spacing-lg);
+	}
+}
+
+@media (min-width: 1024px) {
+	.grid-responsive {
+		grid-template-columns: repeat(4, 1fr);
+		gap: var(--spacing-xl);
+	}
+}
+
+/* 响应式卡片组件 */
+.card-responsive {
+	background: var(--bg-color);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	padding: var(--spacing-md);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+	.card-responsive {
+		padding: var(--spacing-lg);
+		border-radius: 12px;
+	}
+}
+
+.card-responsive:hover {
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+	transform: translateY(-2px);
+}
+
+/* 响应式输入框 */
+.input-responsive {
+	width: 100%;
+	min-height: var(--touch-target-min);
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--input-bg);
+	color: var(--text-color);
+	font-size: var(--font-size-base);
+	transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+	.input-responsive {
+		font-size: var(--font-size-md);
+		padding: var(--spacing-lg);
+		border-radius: 8px;
+	}
+}
+
+.input-responsive:focus {
+	outline: none;
+	border-color: var(--primary-color);
+	box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* 响应式按钮组 */
+.button-group-responsive {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	width: 100%;
+}
+
+@media (min-width: 480px) {
+	.button-group-responsive {
+		flex-direction: row;
+		width: auto;
+	}
+	
+	.button-group-responsive > * {
+		flex: 1;
+	}
+}
+
+@media (min-width: 768px) {
+	.button-group-responsive {
+		gap: var(--spacing-md);
+	}
+	
+	.button-group-responsive > * {
+		flex: none;
+	}
+}

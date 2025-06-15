@@ -19,16 +19,6 @@
             <div class="channel-header">
                 <h2>频道列表</h2>
                 <div class="header-actions">
-                    <button id="sidebarToggle" class="sidebar-toggle" title="收缩侧边栏">
-                        <svg class="toggle-icon collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="15,18 9,12 15,6"></polyline>
-                        </svg>
-                        <svg class="toggle-icon expand" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="9,18 15,12 9,6"></polyline>
-                        </svg>
-                    </button>
                     <button id="toggleTheme" class="theme-toggle" title="切换主题">
                         <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -50,10 +40,20 @@
                 </div>
             </div>
             <!-- 频道源管理面板 -->
-            <div class="source-management">
+            <div class="source-management" id="sourceManagement">
                 <div class="management-header">
                     <h3>频道源管理</h3>
                     <div class="management-actions">
+                        <button id="toggleSourcePanel" class="source-toggle mobile-only" title="展开/收起频道源">
+                            <svg class="toggle-icon expand" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                            <svg class="toggle-icon collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="18,15 12,9 6,15"></polyline>
+                            </svg>
+                        </button>
                         <button id="addSourceBtn" class="btn btn-success btn-sm" title="添加频道源">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -62,7 +62,6 @@
                             </svg>
                             源
                         </button>
-
                     </div>
                 </div>
                 <div class="source-list" id="sourceList">

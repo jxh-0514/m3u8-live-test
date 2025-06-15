@@ -1,4 +1,32 @@
 :root {
+	/* 响应式断点变量 */
+	--breakpoint-xs: 320px;
+	--breakpoint-sm: 480px;
+	--breakpoint-md: 768px;
+	--breakpoint-lg: 1024px;
+	--breakpoint-xl: 1200px;
+
+	/* 响应式间距系统 */
+	--spacing-xs: 4px;
+	--spacing-sm: 8px;
+	--spacing-md: 12px;
+	--spacing-lg: 16px;
+	--spacing-xl: 20px;
+	--spacing-2xl: 24px;
+	--spacing-3xl: 32px;
+
+	/* 触摸目标最小尺寸 */
+	--touch-target-min: 44px;
+	--touch-target-comfortable: 48px;
+
+	/* 响应式字体大小 */
+	--font-size-xs: 0.75rem;
+	--font-size-sm: 0.85rem;
+	--font-size-base: 0.9rem;
+	--font-size-md: 1rem;
+	--font-size-lg: 1.1rem;
+	--font-size-xl: 1.2rem;
+
 	/* 亮色主题变量 */
 	--primary-bg: #ffffff;
 	--secondary-bg: #f8f9fa;
@@ -218,53 +246,69 @@ body {
 	scrollbar-color: var(--scrollbar-thumb, #cbd5e1) var(--scrollbar-track, #f1f5f9);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-	.container {
-		flex-direction: row;
-		position: relative;
-	}
+/* 统一响应式设计 - 移动优先 */
 
-	.main-content {
-		width: 100%;
-		margin-left: 0;
-		position: relative;
-		z-index: 1;
-	}
+/* 基础移动端样式 (320px+) */
+.container {
+	flex-direction: row;
+	position: relative;
+}
 
+.main-content {
+	width: 100%;
+	margin-left: 0;
+	position: relative;
+	z-index: 1;
+}
+
+.notification {
+	left: var(--spacing-sm);
+	right: var(--spacing-sm);
+	max-width: none;
+	top: var(--spacing-lg);
+	z-index: 1001;
+	font-size: var(--font-size-sm);
+}
+
+/* 移动端滚动条 */
+::-webkit-scrollbar {
+	width: 4px;
+	height: 4px;
+}
+
+/* 小屏手机 (480px+) */
+@media (min-width: 480px) {
 	.notification {
-		left: 20px;
-		right: 20px;
-		max-width: none;
-		top: 20px;
-		z-index: 1001;
-	}
-
-	/* 移动端滚动条更细 */
-	::-webkit-scrollbar {
-		width: 4px;
-		height: 4px;
+		left: var(--spacing-lg);
+		right: var(--spacing-lg);
+		font-size: var(--font-size-base);
 	}
 }
 
-@media (max-width: 480px) {
+/* 平板设备 (768px+) */
+@media (min-width: 768px) {
 	.container {
 		flex-direction: row;
-		position: relative;
-	}
-
-	.main-content {
-		width: 100%;
-		margin-left: 0;
-		position: relative;
-		z-index: 1;
 	}
 
 	.notification {
-		left: 10px;
-		right: 10px;
-		font-size: 0.85rem;
-		top: 20px;
-		z-index: 1001;
+		left: 50%;
+		right: auto;
+		max-width: 90%;
+		transform: translateX(-50%);
+		font-size: var(--font-size-md);
+	}
+
+	/* 桌面端滚动条 */
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+}
+
+/* 大屏设备 (1024px+) */
+@media (min-width: 1024px) {
+	.notification {
+		max-width: 400px;
 	}
 }

@@ -101,33 +101,14 @@ class App {
 			// 事件已在 SourceManager 中处理
 		});
 
-		// 侧边栏收缩功能
-		this.initSidebarToggle();
-
 		// 移动端侧边栏控制
 		this.initMobileSidebar();
 
+		// 频道源面板折叠控制
+		this.initSourcePanelToggle();
+
 		// 主题切换功能
 		this.initThemeToggle();
-	}
-
-	// 初始化侧边栏收缩功能
-	initSidebarToggle() {
-		const sidebarToggle = document.getElementById("sidebarToggle");
-		const sidebar = document.getElementById("sidebar");
-
-		if (sidebarToggle && sidebar) {
-			// 恢复保存的状态
-			const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-			if (isCollapsed) {
-				sidebar.classList.add("collapsed");
-			}
-
-			sidebarToggle.addEventListener("click", () => {
-				sidebar.classList.toggle("collapsed");
-				localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed"));
-			});
-		}
 	}
 
 	// 初始化移动端侧边栏控制
@@ -154,6 +135,42 @@ class App {
 				if (e.key === "Escape" && sidebar.classList.contains("mobile-show")) {
 					sidebar.classList.remove("mobile-show");
 					mobileOverlay.classList.remove("show");
+				}
+			});
+		}
+	}
+
+	// 初始化频道源面板折叠控制
+	initSourcePanelToggle() {
+		const toggleBtn = document.getElementById("toggleSourcePanel");
+		const sourceManagement = document.getElementById("sourceManagement");
+
+		if (toggleBtn && sourceManagement) {
+			// 检查是否为移动端
+			const isMobile = () => window.innerWidth < 768;
+
+			// 恢复保存的状态（仅移动端）
+			const isExpanded = localStorage.getItem("sourcePanelExpanded") === "true";
+			if (isMobile() && isExpanded) {
+				sourceManagement.classList.add("expanded");
+			}
+
+			toggleBtn.addEventListener("click", () => {
+				if (isMobile()) {
+					sourceManagement.classList.toggle("expanded");
+					localStorage.setItem("sourcePanelExpanded", sourceManagement.classList.contains("expanded"));
+				}
+			});
+
+			// 监听窗口大小变化
+			window.addEventListener("resize", () => {
+				if (!isMobile()) {
+					// 桌面端移除移动端的类
+					sourceManagement.classList.remove("expanded");
+				} else {
+					// 移动端恢复保存的状态
+					const isExpanded = localStorage.getItem("sourcePanelExpanded") === "true";
+					sourceManagement.classList.toggle("expanded", isExpanded);
 				}
 			});
 		}
